@@ -1,0 +1,17 @@
+{
+  "watch": ["src"],
+  "ext": "ts,json",
+  "ignore": ["src/**/*.test.ts"],
+  "exec": "ts-node",
+  "args": "src/index.ts",
+  "delay": 1000,
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "events": {
+    "start": "clear || cls",
+    "restart": [
+      "clear || cls"
+    ]
+  }
+}
