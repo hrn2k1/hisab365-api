@@ -7,11 +7,13 @@ import { connectDatabase } from '../src/config/database';
 import Config from '../src/config/config';
 import { swaggerSpec } from '../src/config/swagger';
 import { registerControllers } from '../src/utils/router';
+import { CompanyController } from '../src/controllers/CompanyController';
 import { AuthController } from '../src/controllers/AuthController';
 import { UserController } from '../src/controllers/UserController';
 import { ProfileController } from '../src/controllers/ProfileController';
 import { LocationController } from '../src/controllers/LocationController';
 import { AccountController } from '../src/controllers/AccountController';
+import { TransactionController } from '../src/controllers/TransactionController';
 
 // Create Express app
 const app: Express = express();
@@ -87,7 +89,7 @@ app.get('/api-docs', swaggerUi.setup(swaggerSpec, swaggerUiOptions));
 
 // API routes
 const apiRouter = express.Router();
-registerControllers(apiRouter, [AuthController, UserController, ProfileController, LocationController, AccountController]);
+registerControllers(apiRouter, [CompanyController, AuthController, UserController, ProfileController, LocationController, AccountController, TransactionController]);
 app.use(Config.API_PREFIX, apiRouter);
 
 // Database connection state
