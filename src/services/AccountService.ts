@@ -1,32 +1,39 @@
+import { Model } from 'mongoose';
 import Account, { IAccount } from '../models/Account';
 
 export class AccountService {
+  private accountModel: Model<IAccount>;
+
+  constructor(companyId: string) {
+    this.accountModel = Account(companyId);
+  }
+
   /**
    * Get all accounts
    */
   async getAllAccounts(): Promise<IAccount[]> {
-    return await Account.find().sort({ createdAt: -1 });
+    return await this.accountModel.find().sort({ createdAt: -1 });
   }
 
   /**
    * Get account by ID
    */
   async getAccountById(id: string): Promise<IAccount | null> {
-    return await Account.findById(id);
+    return await this.accountModel.findById(id);
   }
 
   /**
    * Get accounts by type
    */
   async getAccountsByType(type: string): Promise<IAccount[]> {
-    return await Account.find({ type }).sort({ createdAt: -1 });
+    return await this.accountModel.find({ type }).sort({ createdAt: -1 });
   }
 
   /**
    * Create new account
    */
   async createAccount(data: Partial<IAccount>): Promise<IAccount> {
-    const account = new Account(data);
+    const account = new this.accountModel(data);
     return await account.save();
   }
 
@@ -34,14 +41,14 @@ export class AccountService {
    * Update account
    */
   async updateAccount(id: string, data: Partial<IAccount>): Promise<IAccount | null> {
-    return await Account.findByIdAndUpdate(id, data, { new: true });
+    return await this.accountModel.findByIdAndUpdate(id, data, { new: true });
   }
 
   /**
    * Delete account
    */
   async deleteAccount(id: string): Promise<boolean> {
-    const result = await Account.deleteOne({ _id: id });
+    const result = await this.accountModel.deleteOne({ _id: id });
     return result.deletedCount > 0;
   }
 
@@ -60,7 +67,7 @@ export class AccountService {
    * Search accounts by name
    */
   async searchAccounts(query: string): Promise<IAccount[]> {
-    return await Account.find({
+    return await this.accountModel.find({
       name: { $regex: query, $options: 'i' },
     }).sort({ createdAt: -1 });
   }
@@ -73,6 +80,6 @@ export class AccountService {
     if (nameQuery) {
       filter.name = { $regex: nameQuery, $options: 'i' };
     }
-    return await Account.find(filter).sort({ createdAt: -1 });
+    return await this.accountModel.find(filter).sort({ createdAt: -1 });
   }
 }

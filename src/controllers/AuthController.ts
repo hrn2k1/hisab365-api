@@ -50,6 +50,7 @@ import { generateToken } from '../utils/jwt';
  *                 email: "john.doe@example.com"
  *                 contactNumber: "+880123456789"
  *                 type: "user"
+ *                 companyId: "12345678-90ab-cdef-1234-567890abcdef"
  *                 divisionId: 1
  *                 districtId: 1
  *       400:
@@ -88,6 +89,7 @@ import { generateToken } from '../utils/jwt';
  *               - email
  *               - password
  *               - type
+ *               - companyId
  *             properties:
  *               name:
  *                 type: string
@@ -101,6 +103,8 @@ import { generateToken } from '../utils/jwt';
  *               type:
  *                 type: string
  *                 enum: [user, admin, superadmin]
+ *               companyId:
+ *                 type: string
  *               gender:
  *                 type: string
  *               divisionId:
@@ -117,6 +121,7 @@ import { generateToken } from '../utils/jwt';
  *             email: "john.doe@example.com"
  *             password: "Pass@123"
  *             type: "user"
+ *             companyId: "12345678-90ab-cdef-1234-567890abcdef"
  *             gender: "Male"
  *             divisionId: null
  *             districtId: null
@@ -141,6 +146,7 @@ import { generateToken } from '../utils/jwt';
  *                 contactNumber: "+880123456789"
  *                 email: "john.doe@example.com"
  *                 type: "user"
+ *                 companyId: "12345678-90ab-cdef-1234-567890abcdef"
  *                 gender: "Male"
  *                 divisionId: 1
  *                 districtId: 1
@@ -196,6 +202,7 @@ export class AuthController {
         email: user.email,
         contactNumber: user.contactNumber,
         name: user.name,
+        companyId: user.companyId,
       });
       
       res.json({
@@ -222,7 +229,8 @@ export class AuthController {
         'contactNumber',
         'email',
         'password',
-        'type'
+        'type',
+        'companyId'
       ];
 
       for (const field of requiredFields) {

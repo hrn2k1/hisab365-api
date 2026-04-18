@@ -5,6 +5,7 @@ interface TokenPayload {
   email: string;
   contactNumber: string;
   name: string;
+  companyId: string;
 }
 
 /**
@@ -19,14 +20,14 @@ export function generateToken(payload: TokenPayload): string {
       email: payload.email,
       contactNumber: payload.contactNumber,
       name: payload.name,
+      companyId: payload.companyId,
     },
     secret,
     {
       issuer: process.env.JWT_ISSUER || 'hrnsoft.com',
       audience: process.env.JWT_AUDIENCE || 'blood-bank-api',
       expiresIn: '7d', // Token expires in 7 days
-      algorithm: 'HS256',
-      
+      algorithm: 'HS256',      
     }
   );
 
@@ -46,6 +47,7 @@ export function verifyToken(token: string): TokenPayload | null {
       email: decoded.email,
       contactNumber: decoded.contactNumber,
       name: decoded.name,
+      companyId: decoded.companyId,
     };
   } catch (error) {
     return null;
@@ -55,6 +57,7 @@ export function verifyToken(token: string): TokenPayload | null {
 /**
  * Decode JWT token without verification
  */
+/*
 export function decodeToken(token: string): TokenPayload | null {
   try {
     const decoded = jwt.decode(token) as TokenPayload & { iss?: string } | null;
@@ -63,8 +66,10 @@ export function decodeToken(token: string): TokenPayload | null {
       email: decoded.email,
       contactNumber: decoded.contactNumber,
       name: decoded.name,
+      companyId: decoded.companyId
     } : null;
   } catch (error) {
     return null;
   }
 }
+*/

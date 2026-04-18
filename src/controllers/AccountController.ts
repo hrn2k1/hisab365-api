@@ -185,19 +185,21 @@ import { AccountService } from '../services/AccountService';
 
 @Controller('/accounts')
 export class AccountController {
-  private accountService: AccountService;
+  //private accountService: AccountService;
 
   constructor() {
-    this.accountService = new AccountService();
+    //this.accountService = new AccountService("");
   }
 
   @Get()
+  @Authenticated()
   async getAllAccounts(req: Request, res: Response): Promise<void> {
-    const accounts = await this.accountService.getAllAccounts();
+    const accounts = await new AccountService(req.user?.companyId!).getAllAccounts();
     res.json({ success: true, data: accounts });
   }
 
   @Get('/type/:type')
+  @Authenticated()
   async getAccountsByType(req: Request, res: Response): Promise<void> {
     const { type } = req.params;
     const validTypes = ['Asset', 'Cash', 'Bank', 'Supplier', 'Customer', 'Income', 'Expense'];
@@ -207,14 +209,15 @@ export class AccountController {
       return;
     }
 
-    const accounts = await this.accountService.getAccountsByType(type);
+    const accounts = await new AccountService(req.user?.companyId!).getAccountsByType(type);
     res.json({ success: true, data: accounts });
   }
 
   @Get('/:id')
+  @Authenticated()
   async getAccountById(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
-    const account = await this.accountService.getAccountById(id);
+    const account = await new AccountService(req.user?.companyId!).getAccountById(id);
 
     if (!account) {
       res.status(404).json({ success: false, message: 'Account not found' });
@@ -225,6 +228,7 @@ export class AccountController {
   }
 
   @Post()
+  @Authenticated()
   async createAccount(req: Request, res: Response): Promise<void> {
     const { name, type, openingBalance, currentBalance, props } = req.body;
 
@@ -239,7 +243,7 @@ export class AccountController {
       return;
     }
 
-    const account = await this.accountService.createAccount({
+    const account = await new AccountService(req.user?.companyId!).createAccount({
       name,
       type,
       openingBalance: openingBalance || 0,
@@ -251,6 +255,7 @@ export class AccountController {
   }
 
   @Put('/:id')
+  @Authenticated()
   async updateAccount(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     const { name, type, openingBalance, currentBalance, props } = req.body;
@@ -263,7 +268,7 @@ export class AccountController {
       }
     }
 
-    const account = await this.accountService.updateAccount(id, {
+    const account = await new AccountService(req.user?.companyId!).updateAccount(id, {
       name,
       type,
       openingBalance,
@@ -280,9 +285,10 @@ export class AccountController {
   }
 
   @Delete('/:id')
+  @Authenticated()
   async deleteAccount(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
-    const deleted = await this.accountService.deleteAccount(id);
+    const deleted = await new AccountService(req.user?.companyId!).deleteAccount(id);
 
     if (!deleted) {
       res.status(404).json({ success: false, message: 'Account not found' });

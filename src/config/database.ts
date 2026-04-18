@@ -2,6 +2,27 @@ import mongoose, { Connection } from 'mongoose';
 import Config from './config';
 
 let connection: Connection | null = null;
+let transactionSupportChecked = false;
+let transactionSupported = false;
+
+async function determineTransactionSupport(): Promise<void> {
+  if (transactionSupportChecked) {
+    return;
+  }
+
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+    await session.commitTransaction();
+    transactionSupported = true;
+  } catch (error) {
+    console.warn('⚠️ MongoDB transactions not supported:', error instanceof Error ? error.message : String(error));
+    transactionSupported = false;
+  } finally {
+    await session.endSession();
+    transactionSupportChecked = true;
+  }
+}
 
 /**
  * Establish connection to MongoDB
@@ -14,6 +35,7 @@ export async function connectDatabase(): Promise<void> {
 
     await mongoose.connect(Config.MONGODB_URI);
     connection = mongoose.connection;
+    await determineTransactionSupport();
 
     console.log('✓ Database connected successfully');
   } catch (error) {
@@ -43,8 +65,21 @@ export function getConnection(): Connection {
   return connection;
 }
 
+export function getCompanyConnection(companyId: string): Connection {
+  return getConnection().useDb(companyId, { useCache: true });
+}
+
+export function isTransactionSupported(): boolean {
+  if (!transactionSupportChecked) {
+    throw new Error('Transaction support has not been initialized yet. Call connectDatabase() first.');
+  }
+  return transactionSupported;
+}
+
 export default {
   connectDatabase,
   disconnectDatabase,
   getConnection,
+  getCompanyConnection,
+  isTransactionSupported,
 };

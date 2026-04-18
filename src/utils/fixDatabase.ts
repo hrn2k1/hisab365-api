@@ -43,6 +43,7 @@ async function fixDatabase() {
     await Location.deleteMany({});
     console.log('✓ Cleared locations collection');
 
+    /*
     // Clear Accounts collection
     console.log('Dropping old indexes on accounts collection...');
     try {
@@ -55,7 +56,7 @@ async function fixDatabase() {
     console.log('Clearing accounts collection...');
     await Account.deleteMany({});
     console.log('✓ Cleared accounts collection');
-
+*/
     // Clear Counter collection
     console.log('Clearing counter collection...');
     await Counter.deleteMany({});

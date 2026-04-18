@@ -17,10 +17,12 @@ export interface IUser extends Document {
     email: string;
     password: string;
     type: 'user' | 'admin' | 'superadmin';
+    companyId: string;
     gender?: String,
     divisionId?: number;
     districtId?: number;
     thanaId?: number | null;
+
     props: IUserProps;
     createdAt: Date;
     updatedAt?: Date;
@@ -63,6 +65,10 @@ const userSchema = new Schema<IUser>(
             type: String,
             enum: ['user', 'admin', 'superadmin'],
             required: true,
+        },
+        companyId: {
+            type: String,
+            required: true
         },
         divisionId: {
             type: Number,

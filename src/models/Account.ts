@@ -1,5 +1,6 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
 import { randomUUID } from 'crypto';
+import { getCompanyConnection } from '../config/database';
 
 export interface IAccount extends Document {
   _id: string;
@@ -52,4 +53,7 @@ const accountSchema = new Schema<IAccount>(
 accountSchema.index({ type: 1 });
 accountSchema.index({ name: 1 });
 
-export default model<IAccount>('Account', accountSchema);
+export default (companyId: string) => {
+  const companyDb = getCompanyConnection(companyId);
+  return companyDb.model<IAccount>('Account', accountSchema);
+};

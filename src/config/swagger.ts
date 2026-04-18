@@ -35,7 +35,7 @@ const options = {
       schemas: {
         User: {
           type: 'object',
-          required: ['id', 'name', 'contactNumber', 'email', 'password', 'type', 'gender', 'divisionId', 'districtId'],
+          required: ['id', 'name', 'contactNumber', 'email', 'password', 'type', 'companyId', 'gender', 'divisionId', 'districtId'],
           properties: {
             id: {
               type: 'string',
@@ -67,6 +67,11 @@ const options = {
               enum: ['user', 'admin', 'superadmin'],
               description: 'User type',
               example: 'user',
+            },
+            companyId: {
+              type: 'string',
+              description: 'Company ID',
+              example: '12345678-90ab-cdef-1234-567890abcdef',
             },
             gender: {
               type: 'string',
@@ -198,8 +203,222 @@ const options = {
             },
           },
         },
-      },
-      responses: {
+        Transaction: {
+          type: 'object',
+          required: ['date', 'voucherNo', 'voucherType', 'amount', 'description', 'details', 'status', 'createdBy'],
+          properties: {
+            id: {
+              type: 'string',
+              description: 'Transaction ID',
+              example: 'd1c9e5b8-7a0c-4f1b-9c3e-2a5f8e6b9c7d',
+            },
+            date: {
+              type: 'string',
+              format: 'date',
+              description: 'Transaction date',
+              example: '2024-06-01',
+            },
+            voucherNo: {
+              type: 'string',
+              description: 'Voucher number',
+              example: 'VCH-001',
+            },
+            voucherType: {
+              type: 'string',
+              enum: ['Credit', 'Debit', 'Journal'],
+              description: 'Voucher type',
+              example: 'Credit',
+            },
+            amount: {
+              type: 'number',
+              description: 'Transaction amount',
+              example: 10000,
+            },
+            description: {
+              type: 'string',
+              description: 'Transaction description',
+              example: 'Donation from Harun Or Rashid',
+            },
+            details: {
+              type: 'array',
+              description: 'Transaction details',
+              items: {
+                type: 'object',
+                properties: {
+                  accountId: {
+                    type: 'string',
+                    description: 'Account ID',
+                  },
+                  type: {
+                    type: 'string',
+                    enum: ['Credit', 'Debit'],
+                    description: 'Detail type',
+                  },
+                  amount: {
+                    type: 'number',
+                    description: 'Detail amount',
+                  },
+                },
+              },
+            },
+            attachments: {
+              type: 'array',
+              description: 'Transaction attachments',
+              items: {
+                type: 'object',
+                properties: {
+                  id: {
+                    type: 'string',
+                    description: 'Attachment ID',
+                  },
+                  fileName: {
+                    type: 'string',
+                    description: 'File name',
+                  },
+                  fileType: {
+                    type: 'string',
+                    description: 'File type',
+                  },
+                  fileSize: {
+                    type: 'number',
+                    description: 'File size in bytes',
+                  },
+                  url: {
+                    type: 'string',
+                    description: 'File URL',
+                  },
+                },
+              },
+            },
+            status: {
+              type: 'string',
+              description: 'Transaction status',
+              example: 'Approved',
+            },
+            createdBy: {
+              type: 'string',
+              description: 'Created by user ID',
+              example: '6a61aded-906a-4801-8543-d1d5ca9e0193',
+            },
+            checkedBy: {
+              type: 'array',
+              description: 'Checked by user IDs',
+              items: {
+                type: 'string',
+              },
+            },
+            approvedBy: {
+              type: 'array',
+              description: 'Approved by user IDs',
+              items: {
+                type: 'string',
+              },
+            },
+            props: {
+              type: 'object',
+              description: 'Additional properties',
+              example: { checkNumber: '789038', checkDate: '2024-06-01' },
+            },
+            activityLog: {
+              type: 'array',
+              description: 'Activity log',
+              items: {
+                type: 'object',
+                properties: {
+                  timestamp: {
+                    type: 'string',
+                    format: 'date-time',
+                    description: 'Activity timestamp',
+                  },
+                  userId: {
+                    type: 'string',
+                    description: 'User ID who performed the action',
+                  },
+                  action: {
+                    type: 'string',
+                    description: 'Action performed',
+                  },
+                  comment: {
+                    type: 'string',
+                    description: 'Action comment',
+                  },
+                },
+              },
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Transaction creation date',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Transaction last update date',
+            },
+          },
+        },
+        Company: {
+          type: 'object',
+          required: ['name', 'address', 'phone', 'email', 'businessType'],
+          properties: {
+            id: {
+              type: 'string',
+              description: 'Company ID',
+              example: '1a2b3c4d-5e6f-7890-abcd-1234567890ab',
+            },
+            name: {
+              type: 'string',
+              description: 'Company name',
+              example: 'HrnSoft Ltd.',
+            },
+            address: {
+              type: 'string',
+              description: 'Company address',
+              example: '123 Main Street, Dhaka, Bangladesh',
+            },
+            phone: {
+              type: 'string',
+              description: 'Company phone number',
+              example: '+880123456789',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              description: 'Company email address',
+              example: 'info@hisab365.com',
+            },
+            website: {
+              type: 'string',
+              description: 'Company website URL',
+              example: 'https://www.hisab365.com',
+            },
+            logoUrl: {
+              type: 'string',
+              description: 'Company logo URL',
+              example: 'https://www.hisab365.com/logo.png',
+            },
+            businessType: {
+              type: 'string',
+              description: 'Company business type',
+              example: 'Software Development',
+            },
+            props: {
+              type: 'object',
+              description: 'Additional properties (flexible)',
+              example: { foundedYear: 2020, numberOfEmployees: 50 },
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Company creation date',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Company last update date',
+            },
+          },
+        },
         NotFound: {
           description: 'Resource not found',
           content: {
