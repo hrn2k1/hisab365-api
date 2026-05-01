@@ -10,19 +10,26 @@ export interface IUserProps {
     bloodGroup?: string;
     [key: string]: any;
 }
+export interface IMembership {
+    companyId: string;
+    role: string | 'user' | 'admin';
+    joinedAt: Date | null;
+    status: 'active' | 'pending' | 'rejected';
+    statusDate: Date | null;
+}
 
 export interface IUser extends Document {
     name: string;
     contactNumber: string;
     email: string;
     password: string;
-    type: 'user' | 'admin' | 'superadmin';
-    companyId: string;
+    type: 'user' | 'superadmin';
+    isActive?: boolean;
     gender?: String,
     divisionId?: number;
     districtId?: number;
     thanaId?: number | null;
-
+    memberships: IMembership[];
     props: IUserProps;
     createdAt: Date;
     updatedAt?: Date;
@@ -63,12 +70,8 @@ const userSchema = new Schema<IUser>(
         },
         type: {
             type: String,
-            enum: ['user', 'admin', 'superadmin'],
+            enum: ['user', 'superadmin'],
             required: true,
-        },
-        companyId: {
-            type: String,
-            required: true
         },
         divisionId: {
             type: Number,
@@ -86,6 +89,14 @@ const userSchema = new Schema<IUser>(
             type: String,
             required: true,
         },
+        memberships: [
+            {
+                companyId: { type: String, required: true },
+                role: { type: String, enum: ['user', 'admin'], required: true },
+                joinedAt: { type: Date, default: null },
+                status: { type: String, enum: ['active', 'pending', 'rejected'], required: true, default: 'pending' },
+                statusDate: { type: Date, default: null },
+            }],
         props: {
             type: userPropsSchema,
             default: {},

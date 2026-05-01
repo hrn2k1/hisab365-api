@@ -359,7 +359,7 @@ const options = {
         },
         Company: {
           type: 'object',
-          required: ['name', 'address', 'phone', 'email', 'businessType'],
+          required: ['name', 'addressLine1', 'phone', 'email', 'type', 'contactPerson', 'contactNumber', 'contactEmail'],
           properties: {
             id: {
               type: 'string',
@@ -371,10 +371,15 @@ const options = {
               description: 'Company name',
               example: 'HrnSoft Ltd.',
             },
-            address: {
+            addressLine1: {
               type: 'string',
-              description: 'Company address',
-              example: '123 Main Street, Dhaka, Bangladesh',
+              description: 'Company address line 1',
+              example: '123 Main Street',
+            },
+            addressLine2: {
+              type: 'string',
+              description: 'Company address line 2',
+              example: 'Dhaka, Bangladesh',
             },
             phone: {
               type: 'string',
@@ -397,15 +402,31 @@ const options = {
               description: 'Company logo URL',
               example: 'https://www.hisab365.com/logo.png',
             },
-            businessType: {
+            type: {
               type: 'string',
               description: 'Company business type',
               example: 'Software Development',
             },
+            contactPerson: {
+              type: 'string',
+              description: 'Company contact person',
+              example: 'John Doe',
+            },
+            contactNumber: {
+              type: 'string',
+              description: 'Company contact number',
+              example: '+880123456789',
+            },
+            contactEmail: {
+              type: 'string',
+              format: 'email',
+              description: 'Company contact email',
+              example: 'john.doe@hisab365.com',
+            },
             props: {
               type: 'object',
               description: 'Additional properties (flexible)',
-              example: { foundedYear: 2020, numberOfEmployees: 50 },
+              example: { foundedYear: 2026, numberOfEmployees: 50 },
             },
             createdAt: {
               type: 'string',

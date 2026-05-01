@@ -1,4 +1,4 @@
-import { User, IUser } from '../models/User';
+import { User, IUser, IMembership } from '../models/User';
 
 export class UserService {
   /**
@@ -20,6 +20,20 @@ export class UserService {
    */
   async getUserByEmail(email: string): Promise<IUser | null> {
     return User.findOne({ email });
+  }
+
+  /**
+   * Get user by email or contact number
+   */
+  async getUserByEmailOrContact(email: string, contactNumber: string): Promise<IUser | null> {
+    const escapedEmail = email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    return User.findOne({
+      $or: [
+        { email: { $regex: `^${escapedEmail}$`, $options: 'i' } },
+        { contactNumber },
+      ],
+    });
   }
 
   /**
@@ -53,6 +67,32 @@ export class UserService {
    */
   async updateUser(id: string, userData: Partial<IUser>): Promise<IUser | null> {
     return User.findByIdAndUpdate(id, userData, { new: true });
+  }
+
+  /**
+   * Push a membership object into the user's memberships array
+   */
+  async addMembership(id: string, membership: IMembership): Promise<IUser | null> {
+    return User.findByIdAndUpdate(
+      id,
+      { $push: { memberships: membership } },
+      { new: true, runValidators: true }
+    );
+  }
+
+  /**
+   * Set specific user fields without replacing the whole document
+   */
+  async setUser(id: string, userData: Partial<IUser>): Promise<IUser | null> {
+    const fieldsToSet = Object.fromEntries(
+      Object.entries(userData).filter(([, value]) => value !== undefined)
+    );
+
+    return User.findByIdAndUpdate(
+      id,
+      { $set: fieldsToSet },
+      { new: true, runValidators: true }
+    );
   }
 
   /**

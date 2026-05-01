@@ -53,14 +53,20 @@ import { CompanyService } from '../services/CompanyService';
  *             type: object
  *             required:
  *               - name
- *               - address
+ *               - addressLine1
+ *               - addressLine2
  *               - phone
  *               - email
- *               - businessType
+ *               - type
+ *               - contactPerson
+ *               - contactNumber
+ *               - contactEmail
  *             properties:
  *               name:
  *                 type: string
- *               address:
+ *               addressLine1:
+ *                 type: string
+ *               addressLine2:
  *                 type: string
  *               phone:
  *                 type: string
@@ -71,20 +77,34 @@ import { CompanyService } from '../services/CompanyService';
  *                 type: string
  *               logoUrl:
  *                 type: string
- *               businessType:
+ *               type:
  *                 type: string
+ *               contactPerson:
+ *                 type: string
+ *               contactNumber:
+ *                 type: string
+ *               contactEmail:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *                 enum: ['active', 'inactive', 'pending']
  *               props:
  *                 type: object
  *           example:
  *             name: "HrnSoft Ltd."
- *             address: "123 Main Street, Dhaka, Bangladesh"
+ *             addressLine1: "123 Main Street"
+ *             addressLine2: "Dhaka, Bangladesh"
  *             phone: "+880123456789"
  *             email: "info@hisab365.com"
  *             website: "https://www.hisab365.com"
  *             logoUrl: "https://www.hisab365.com/logo.png"
- *             businessType: "Software Development"
+ *             type: "Mess"
+ *             contactPerson: "John Doe"
+ *             contactNumber: "+880123456789"
+ *             contactEmail: "john.doe@hisab365.com",
+ *             status: "pending",
  *             props:
- *               foundedYear: 2020
+ *               foundedYear: 2026
  *               numberOfEmployees: 50
  *     responses:
  *       201:
@@ -159,7 +179,9 @@ import { CompanyService } from '../services/CompanyService';
  *             properties:
  *               name:
  *                 type: string
- *               address:
+ *               addressLine1:
+ *                 type: string
+ *               addressLine2:
  *                 type: string
  *               phone:
  *                 type: string
@@ -170,8 +192,17 @@ import { CompanyService } from '../services/CompanyService';
  *                 type: string
  *               logoUrl:
  *                 type: string
- *               businessType:
+ *               type:
  *                 type: string
+ *               contactPerson:
+ *                 type: string
+ *               contactNumber:
+ *                 type: string
+ *               contactEmail:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *                 enum: ['active', 'inactive', 'pending']
  *               props:
  *                 type: object
  *     responses:
@@ -245,7 +276,7 @@ import { CompanyService } from '../services/CompanyService';
 
 /**
  * @swagger
- * /companies/type/{businessType}:
+ * /companies/type/{type}:
  *   get:
  *     summary: Get companies by business type
  *     description: Retrieve companies filtered by business type
@@ -437,11 +468,11 @@ export class CompanyController {
   }
 
   @Authenticated()
-  @Get('/type/:businessType')
+  @Get('/type/:type')
   async getCompaniesByBusinessType(req: Request, res: Response): Promise<void> {
     try {
-      const { businessType } = req.params;
-      const companies = await this.companyService.getCompaniesByBusinessType(businessType);
+      const { type } = req.params;
+      const companies = await this.companyService.getCompaniesByBusinessType(type);
 
       res.json({
         success: true,

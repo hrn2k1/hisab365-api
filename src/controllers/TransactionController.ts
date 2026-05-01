@@ -312,7 +312,7 @@ export class TransactionController {
   @Get()
   async getAllTransactions(req: Request, res: Response): Promise<void> {
     try {
-      const transactions = await new TransactionService(req.user?.companyId!).getAllTransactions();
+      const transactions = await new TransactionService(req.user?.loggedInCompanyId!).getAllTransactions();
 
       res.json({
         success: true,
@@ -331,7 +331,7 @@ export class TransactionController {
   async getTransactionById(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const transaction = await new TransactionService(req.user?.companyId!).getTransactionById(id);
+      const transaction = await new TransactionService(req.user?.loggedInCompanyId!).getTransactionById(id);
 
       if (!transaction) {
         res.status(404).json({
@@ -358,7 +358,7 @@ export class TransactionController {
   async createTransaction(req: Request, res: Response): Promise<void> {
     try {
       const transactionData = req.body;
-      const transaction = await new TransactionService(req.user?.companyId!).createTransaction(transactionData);
+      const transaction = await new TransactionService(req.user?.loggedInCompanyId!).createTransaction(transactionData);
 
       res.status(201).json({
         success: true,
@@ -378,7 +378,7 @@ export class TransactionController {
     try {
       const { id } = req.params;
       const transactionData = req.body;
-      const transaction = await new TransactionService(req.user?.companyId!).updateTransaction(id, transactionData);
+      const transaction = await new TransactionService(req.user?.loggedInCompanyId!).updateTransaction(id, transactionData);
 
       if (!transaction) {
         res.status(404).json({
@@ -405,7 +405,7 @@ export class TransactionController {
   async deleteTransaction(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const transaction = await new TransactionService(req.user?.companyId!).deleteTransaction(id);
+      const transaction = await new TransactionService(req.user?.loggedInCompanyId!).deleteTransaction(id);
 
       if (!transaction) {
         res.status(404).json({

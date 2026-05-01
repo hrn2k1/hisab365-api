@@ -7,12 +7,17 @@ export interface ICompanyProps {
 
 export interface ICompany extends Document {
     name: string;
-    address: string;
+    addressLine1: string;
+    addressLine2?: string;
     phone: string;
     email: string;
     website?: string;
     logoUrl?: string;
-    businessType: string;
+    type: string | 'Mess' | 'Masjid' | 'Building';
+    contactPerson: string;
+    contactNumber: string;
+    contactEmail: string;
+    status?: 'active' | 'inactive' | 'pending';
     props: ICompanyProps;
     createdAt: Date;
     updatedAt?: Date;
@@ -33,18 +38,19 @@ const companySchema = new Schema<ICompany>(
             type: String,
             required: true,
         },
-        address: {
+        addressLine1: {
             type: String,
             required: true,
+        },
+        addressLine2: {
+            type: String,
+            required: false,
         },
         phone: {
-            type: String,
-            required: true,
+            type: String
         },
         email: {
-            type: String,
-            required: true,
-            unique: true,
+            type: String
         },
         website: {
             type: String,
@@ -54,9 +60,26 @@ const companySchema = new Schema<ICompany>(
             type: String,
             required: false,
         },
-        businessType: {
+        type: {
             type: String,
             required: true,
+        },
+        contactPerson: {
+            type: String,
+            required: true,
+        },
+        contactNumber: {
+            type: String,
+            required: true,
+        },
+        contactEmail: {
+            type: String,
+            required: true,
+        },
+        status: {
+            type: String,
+            enum: ['active', 'inactive', 'pending'],
+            default: 'pending',
         },
         props: {
             type: companyPropsSchema,

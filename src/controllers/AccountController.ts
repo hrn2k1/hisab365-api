@@ -194,7 +194,7 @@ export class AccountController {
   @Get()
   @Authenticated()
   async getAllAccounts(req: Request, res: Response): Promise<void> {
-    const accounts = await new AccountService(req.user?.companyId!).getAllAccounts();
+    const accounts = await new AccountService(req.user?.loggedInCompanyId!).getAllAccounts();
     res.json({ success: true, data: accounts });
   }
 
@@ -209,7 +209,7 @@ export class AccountController {
       return;
     }
 
-    const accounts = await new AccountService(req.user?.companyId!).getAccountsByType(type);
+    const accounts = await new AccountService(req.user?.loggedInCompanyId!).getAccountsByType(type);
     res.json({ success: true, data: accounts });
   }
 
@@ -217,7 +217,7 @@ export class AccountController {
   @Authenticated()
   async getAccountById(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
-    const account = await new AccountService(req.user?.companyId!).getAccountById(id);
+    const account = await new AccountService(req.user?.loggedInCompanyId!).getAccountById(id);
 
     if (!account) {
       res.status(404).json({ success: false, message: 'Account not found' });
@@ -243,7 +243,7 @@ export class AccountController {
       return;
     }
 
-    const account = await new AccountService(req.user?.companyId!).createAccount({
+    const account = await new AccountService(req.user?.loggedInCompanyId!).createAccount({
       name,
       type,
       openingBalance: openingBalance || 0,
@@ -268,7 +268,7 @@ export class AccountController {
       }
     }
 
-    const account = await new AccountService(req.user?.companyId!).updateAccount(id, {
+    const account = await new AccountService(req.user?.loggedInCompanyId!).updateAccount(id, {
       name,
       type,
       openingBalance,
@@ -288,7 +288,7 @@ export class AccountController {
   @Authenticated()
   async deleteAccount(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
-    const deleted = await new AccountService(req.user?.companyId!).deleteAccount(id);
+    const deleted = await new AccountService(req.user?.loggedInCompanyId!).deleteAccount(id);
 
     if (!deleted) {
       res.status(404).json({ success: false, message: 'Account not found' });

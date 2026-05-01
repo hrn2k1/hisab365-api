@@ -23,6 +23,20 @@ export class CompanyService {
   }
 
   /**
+   * Get company by name (case-insensitive exact match)
+   */
+  async getCompanyByName(name: string): Promise<ICompany | null> {
+    return Company.findOne({ name: { $regex: `^${name}$`, $options: 'i' } });
+  }
+
+  /**
+   * Get companies by array of IDs
+   */
+  async getCompaniesByIds(ids: string[]): Promise<ICompany[]> {
+    return Company.find({ _id: { $in: ids } });
+  }
+
+  /**
    * Create a new company
    */
   async createCompany(companyData: Partial<ICompany>): Promise<ICompany> {

@@ -5,7 +5,8 @@ interface TokenPayload {
   email: string;
   contactNumber: string;
   name: string;
-  companyId: string;
+  companyIds: string[];
+  loggedInCompanyId?: string;
 }
 
 /**
@@ -14,14 +15,21 @@ interface TokenPayload {
 export function generateToken(payload: TokenPayload): string {
   const secret = process.env.JWT_SECRET || 'default-secret-key';
   
+  const tokenData: any = {
+    userId: payload.userId,
+    email: payload.email,
+    contactNumber: payload.contactNumber,
+    name: payload.name,
+    companyIds: payload.companyIds,
+  };
+
+  // Include loggedInCompanyId if provided
+  if (payload.loggedInCompanyId) {
+    tokenData.loggedInCompanyId = payload.loggedInCompanyId;
+  }
+  
   const token = jwt.sign(
-    {
-      userId: payload.userId,
-      email: payload.email,
-      contactNumber: payload.contactNumber,
-      name: payload.name,
-      companyId: payload.companyId,
-    },
+    tokenData,
     secret,
     {
       issuer: process.env.JWT_ISSUER || 'hrnsoft.com',
@@ -47,7 +55,8 @@ export function verifyToken(token: string): TokenPayload | null {
       email: decoded.email,
       contactNumber: decoded.contactNumber,
       name: decoded.name,
-      companyId: decoded.companyId,
+      companyIds: decoded.companyIds,
+      ...(decoded.loggedInCompanyId && { loggedInCompanyId: decoded.loggedInCompanyId }),
     };
   } catch (error) {
     return null;
@@ -66,7 +75,7 @@ export function decodeToken(token: string): TokenPayload | null {
       email: decoded.email,
       contactNumber: decoded.contactNumber,
       name: decoded.name,
-      companyId: decoded.companyId
+      companyIds: decoded.companyIds
     } : null;
   } catch (error) {
     return null;

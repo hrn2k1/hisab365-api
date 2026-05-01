@@ -111,7 +111,7 @@ class App {
       this.app.listen(this.port, () => {
         console.log(`
 ╔════════════════════════════════════════════════════════╗
-║          Blood Bank API Server Running                 ║
+║          Hisab365 API Server Running                   ║
 ╠════════════════════════════════════════════════════════╣
 ║ Environment: ${Config.NODE_ENV.padEnd(41)} ║
 ║ Port: ${String(this.port).padEnd(48)} ║

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Controller, Get, Post, Put, Delete, Authenticated } from '../decorators';
 import { UserService } from '../services/UserService';
+import { CompanyService } from '../services/CompanyService';
 
 /**
  * @swagger
@@ -367,12 +368,57 @@ import { UserService } from '../services/UserService';
  *       - bearerAuth: []
  */
 
+/**
+ * @swagger
+ * /users/{userId}/companies:
+ *   get:
+ *     summary: Get companies for a user
+ *     description: Returns all companies the user has a membership of
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: "6a61aded-906a-4801-8543-d1d5ca9e0193"
+ *     responses:
+ *       200:
+ *         description: List of companies the user is a member of
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 - id: "12345678-90ab-cdef-1234-567890abcdef"
+ *                   name: "Acme Corp"
+ *                   email: "info@acme.com"
+ *                   contactNumber: "+880123456789"
+ *                   type: "business"
+ *       401:
+ *         description: Unauthorized - Missing or invalid Bearer token
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               message: "User not found"
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
+
 @Controller('/users')
 export class UserController {
   private userService: UserService;
+  private companyService: CompanyService;
 
   constructor() {
     this.userService = new UserService();
+    this.companyService = new CompanyService();
   }
 
   @Authenticated()
@@ -393,6 +439,36 @@ export class UserController {
       res.json({
         success: true,
         data: users,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
+
+  @Authenticated()
+  @Get('/:userId/companies')
+  async getUserCompanies(req: Request, res: Response): Promise<void> {
+    try {
+      const { userId } = req.params;
+      const user = await this.userService.getUserById(userId);
+
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          message: 'User not found',
+        });
+        return;
+      }
+
+      const companyIds = user.memberships.map((m) => m.companyId);
+      const companies = await this.companyService.getCompaniesByIds(companyIds);
+
+      res.json({
+        success: true,
+        data: companies,
       });
     } catch (error) {
       res.status(500).json({
