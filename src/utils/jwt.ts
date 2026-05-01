@@ -33,7 +33,7 @@ export function generateToken(payload: TokenPayload): string {
     secret,
     {
       issuer: process.env.JWT_ISSUER || 'hrnsoft.com',
-      audience: process.env.JWT_AUDIENCE || 'blood-bank-api',
+      audience: process.env.JWT_AUDIENCE || 'hisab365-api',
       expiresIn: '7d', // Token expires in 7 days
       algorithm: 'HS256',      
     }

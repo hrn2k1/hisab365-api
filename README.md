@@ -54,7 +54,7 @@ src/
 
 1. **Clone the repository** (if applicable):
    ```bash
-   cd blood-bank-api
+   cd hisab365-api
    ```
 
 2. **Install dependencies**:

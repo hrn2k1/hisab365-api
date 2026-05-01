@@ -141,7 +141,7 @@ import { CompanyService } from '../services/CompanyService';
  * /auth/register:
  *   post:
  *     summary: User or bank registration
- *     description: Register a new user or blood bank in the system
+ *     description: Register a new organization (company) along with an admin user.
  *     tags:
  *       - Authentication
  *     requestBody:

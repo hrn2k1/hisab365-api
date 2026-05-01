@@ -7,7 +7,7 @@ import { CompanyService } from '../services/CompanyService';
  * @swagger
  * tags:
  *   - name: Users
- *     description: User and blood bank management endpoints
+ *     description: User management endpoints
  */
 
 /**
@@ -15,7 +15,7 @@ import { CompanyService } from '../services/CompanyService';
  * /users:
  *   get:
  *     summary: Get all users
- *     description: Retrieve a list of all users and blood banks with optional filters
+ *     description: Retrieve a list of all users with optional filters
  *     tags:
  *       - Users
  *     security:
@@ -79,7 +79,7 @@ import { CompanyService } from '../services/CompanyService';
  * /users:
  *   post:
  *     summary: Create a new user
- *     description: Register a new user or blood bank in the system
+ *     description: Register a new user in the system
  *     tags:
  *       - Users
  *     security:
