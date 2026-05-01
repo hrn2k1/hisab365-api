@@ -140,7 +140,7 @@ import { CompanyService } from '../services/CompanyService';
  * @swagger
  * /auth/register:
  *   post:
- *     summary: User or bank registration
+ *     summary: Organization registration
  *     description: Register a new organization (company) along with an admin user.
  *     tags:
  *       - Authentication
@@ -202,7 +202,7 @@ import { CompanyService } from '../services/CompanyService';
  *                  longitude: 89.5103
  *     responses:
  *       201:
- *         description: User or bank registered successfully
+ *         description: Organization registered successfully
  *         content:
  *           application/json:
  *             example:

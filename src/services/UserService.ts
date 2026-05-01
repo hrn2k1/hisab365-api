@@ -37,9 +37,9 @@ export class UserService {
   }
 
   /**
-   * Get users by type (user or bank)
+   * Get users by type (user or superadmin)
    */
-  async getUsersByType(type: 'user' | 'admin' | 'superadmin'): Promise<IUser[]> {
+  async getUsersByType(type: 'user' | 'superadmin'): Promise<IUser[]> {
     return User.find({ type });
   }
 
