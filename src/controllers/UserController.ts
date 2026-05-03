@@ -429,7 +429,7 @@ export class UserController {
 
       let users;
       if (type) {
-        users = await this.userService.getUsersByType(type as 'user' | 'admin' | 'superadmin');
+        users = await this.userService.getUsersByType(type as 'user' | 'superadmin');
       } else if (divisionId) {
         users = await this.userService.getUsersByLocation(Number(divisionId), districtId ? Number(districtId) : undefined);
       } else {

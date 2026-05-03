@@ -152,54 +152,41 @@ import { CompanyService } from '../services/CompanyService';
  *             type: object
  *             required:
  *               - name
- *               - contactNumber
- *               - email
- *               - password
+ *               - addressLine1
+ *               - addressLine2
  *               - type
- *               - companyId
+ *               - contactPerson
+ *               - contactNumber
+ *               - contactEmail
+ *               - password
  *             properties:
  *               name:
  *                 type: string
+ *               addressLine1:
+ *                 type: string
+ *               addressLine2:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *                 enum: [Masjid, Mess, Buildling]
+ *               contactPerson:
+ *                 type: string
  *               contactNumber:
  *                 type: string
- *               email:
+ *               contactEmail:
  *                 type: string
  *                 format: email
  *               password:
  *                 type: string
- *               type:
- *                 type: string
- *                 enum: [user, admin, superadmin]
- *               companyId:
- *                 type: string
- *               gender:
- *                 type: string
- *               divisionId:
- *                 type: number
- *               districtId:
- *                 type: number
- *               thanaId:
- *                 type: number
- *               props:
- *                 type: object
  *           example:
- *             name: "John Doe"
+ *             name: "Masjid Al Azad"
+ *             addressLine1: "Sheikhpara, Joypurhat"
+ *             addressLine2: "Joypurhat, Bangladesh"
+ *             type: "Masjid"
+ *             contactPerson: "Abdullah"
  *             contactNumber: "+880123456789"
- *             email: "john.doe@example.com"
+ *             contactEmail: "abdullah@example.com"
  *             password: "Pass@123"
- *             type: "user"
- *             companyId: "12345678-90ab-cdef-1234-567890abcdef"
- *             gender: "Male"
- *             divisionId: null
- *             districtId: null
- *             props:
- *               address: "Sheikhpara, Joypurhat"
- *               photo: "https://example.com/photos/john_doe.jpg"
- *               birthDate: "1985-01-01"
- *               bloodGroup: "A+"
- *               geolocation:
- *                  latitude: 23.8103
- *                  longitude: 89.5103
  *     responses:
  *       201:
  *         description: Organization registered successfully
@@ -209,16 +196,14 @@ import { CompanyService } from '../services/CompanyService';
  *               success: true
  *               data:
  *                 id: "6a61aded-906a-4801-8543-d1d5ca9e0193"
- *                 name: "John Doe"
+ *                 name: "Masjid Al Azad"
+ *                 addressLine1: "Sheikhpara, Joypurhat"
+ *                 addressLine2: "Joypurhat, Bangladesh"
+ *                 type: "Masjid"
+ *                 contactPerson: "Abdullah"
  *                 contactNumber: "+880123456789"
- *                 email: "john.doe@example.com"
- *                 type: "user"
- *                 companyId: "12345678-90ab-cdef-1234-567890abcdef"
- *                 gender: "Male"
- *                 divisionId: 1
- *                 districtId: 1
- *                 props:
- *                   address: "Sheikhpara, Joypurhat"
+ *                 contactEmail: "abdullah@example.com"
+ *                 status: "pending"
  *       400:
  *         description: Invalid input or duplicate email/contact number
  *         content:
@@ -469,7 +454,7 @@ export class AuthController {
       res.status(201).json({
         success: true,
         data: {
-          ...company.toObject(),          
+          ...company.toObject(),
         },
         message: 'Company registered successfully. An admin user has been created with the contact email. Please login to select the company and start using the application.',
       });

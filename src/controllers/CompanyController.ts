@@ -101,8 +101,8 @@ import { CompanyService } from '../services/CompanyService';
  *             type: "Mess"
  *             contactPerson: "John Doe"
  *             contactNumber: "+880123456789"
- *             contactEmail: "john.doe@hisab365.com",
- *             status: "pending",
+ *             contactEmail: "john.doe@hisab365.com"
+ *             status: "pending"
  *             props:
  *               foundedYear: 2026
  *               numberOfEmployees: 50
