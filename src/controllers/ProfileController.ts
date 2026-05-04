@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Controller, Get, Post, Authenticated } from '../decorators';
 import { UserService } from '../services/UserService';
+import { CompanyService } from '../services/CompanyService';
 
 /**
  * @swagger
@@ -118,12 +119,61 @@ import { UserService } from '../services/UserService';
  *               message: "Current password is incorrect"
  */
 
+/**
+ * @swagger
+ * /profile/my-companies:
+ *   get:
+ *     summary: Get companies of current user
+ *     description: Returns all companies the authenticated user is a member of.
+ *     tags:
+ *       - Profile
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Companies retrieved successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 - id: "12345678-90ab-cdef-1234-567890abcdef"
+ *                   name: "Masjid Al Azad"
+ *                   type: "Masjid"
+ *                   status: "active"
+ *       401:
+ *         description: Unauthorized - Missing or invalid Bearer token
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
+
 @Controller('/profile')
 export class ProfileController {
   private userService: UserService;
+  private companyService: CompanyService;
 
   constructor() {
     this.userService = new UserService();
+    this.companyService = new CompanyService();
+  }
+
+  @Authenticated()
+  @Get('/my-companies')
+  async getMyCompanies(req: Request, res: Response): Promise<void> {
+    try {
+      const companyIds = req.user?.companyIds ?? [];
+      const companies = await this.companyService.getCompaniesByIds(companyIds);
+
+      res.json({
+        success: true,
+        data: companies,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
   }
 
   @Authenticated()

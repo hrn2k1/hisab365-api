@@ -33,7 +33,7 @@ export class CompanyService {
    * Get companies by array of IDs
    */
   async getCompaniesByIds(ids: string[]): Promise<ICompany[]> {
-    return Company.find({ _id: { $in: ids } });
+    return Company.find({ _id: { $in: ids } /*, status: 'active'*/ });
   }
 
   /**
@@ -69,6 +69,6 @@ export class CompanyService {
    * Get companies by business type
    */
   async getCompaniesByBusinessType(businessType: string): Promise<ICompany[]> {
-    return Company.find({ businessType });
+    return Company.find({ type: businessType });
   }
 }
