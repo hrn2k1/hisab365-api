@@ -13,7 +13,7 @@ export interface ICompany extends Document {
     email: string;
     website?: string;
     logoUrl?: string;
-    type: string | 'Mess' | 'Masjid' | 'Building';
+    type: string | 'MESS' | 'MASJID' | 'HOUSE' | 'GENERAL' | 'CONSTRUCTION';
     contactPerson: string;
     contactNumber: string;
     contactEmail: string;

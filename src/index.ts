@@ -14,6 +14,7 @@ import { LocationController } from './controllers/LocationController';
 import { AccountController } from './controllers/AccountController';
 import { TransactionController } from './controllers/TransactionController';
 import { CompanyController } from './controllers/CompanyController';
+import { MiscController } from './controllers/MiscController';
 
 class App {
   public app: Express;
@@ -42,12 +43,12 @@ class App {
 
     // Swagger UI with auto-token capture from login
     this.app.use('/api-docs', swaggerUi.serve);
-    this.app.get('/api-docs', swaggerUi.setup(swaggerSpec, { 
+    this.app.get('/api-docs', swaggerUi.setup(swaggerSpec, {
       swaggerOptions: {
         defaultModelsExpandDepth: 2,
         persistAuthorization: true,
         // Custom plugin to intercept login response and set token
-        plugins: [(function() {
+        plugins: [(function () {
           return {
             statePlugins: {
               auth: {
@@ -87,7 +88,7 @@ class App {
             }
           };
         }) as any]
-      } 
+      }
     }));
   }
 
@@ -96,7 +97,7 @@ class App {
     const apiRouter = express.Router();
 
     // Register decorated controllers
-    registerControllers(apiRouter, [AuthController, UserController, ProfileController, LocationController, AccountController, TransactionController, CompanyController]);
+    registerControllers(apiRouter, [MiscController, AuthController, UserController, ProfileController, LocationController, AccountController, TransactionController, CompanyController]);
 
     // Mount API router
     this.app.use(Config.API_PREFIX, apiRouter);
