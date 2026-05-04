@@ -87,7 +87,7 @@ const userSchema = new Schema<IUser>(
         },
         gender: {
             type: String,
-            required: true,
+            required: false,
         },
         memberships: [
             {

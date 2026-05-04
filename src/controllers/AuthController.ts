@@ -205,12 +205,12 @@ import { CompanyService } from '../services/CompanyService';
  *                 contactEmail: "abdullah@example.com"
  *                 status: "pending"
  *       400:
- *         description: Invalid input or duplicate email/contact number
+ *         description: Invalid input or duplicate organization name
  *         content:
  *           application/json:
  *             example:
  *               success: false
- *               message: "Email already exists"
+ *               message: "Organization already exists"
  */
 
 /**
@@ -454,6 +454,7 @@ export class AuthController {
       res.status(201).json({
         success: true,
         data: {
+          id: company._id,
           ...company.toObject(),
         },
         message: 'Company registered successfully. An admin user has been created with the contact email. Please login to select the company and start using the application.',

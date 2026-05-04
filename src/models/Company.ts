@@ -18,7 +18,7 @@ export interface ICompany extends Document {
     contactNumber: string;
     contactEmail: string;
     status?: 'active' | 'inactive' | 'pending';
-    props: ICompanyProps;
+    props?: ICompanyProps;
     createdAt: Date;
     updatedAt?: Date;
 }
