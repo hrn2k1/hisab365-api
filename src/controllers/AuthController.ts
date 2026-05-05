@@ -307,14 +307,19 @@ export class AuthController {
       delete userResponse.password;
 
       // Generate JWT token
-      const token = generateToken({
+      const tokenPayload: any = {
         userId: user._id,
         email: user.email,
         contactNumber: user.contactNumber,
         name: user.name,
         companyIds: user.memberships.map(membership => membership.companyId),
-      });
+      };
 
+      if (user.memberships.length === 1) {
+        tokenPayload.loggedInCompanyId = user.memberships[0].companyId;
+      }
+
+      const token = generateToken(tokenPayload);
       res.json({
         success: true,
         token,
