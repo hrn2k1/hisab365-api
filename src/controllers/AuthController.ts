@@ -338,16 +338,15 @@ export class AuthController {
     try {
       const { email, name, contactNumber } = req.body;
 
-      if (!email || !name || !contactNumber) {
+      if (!email || !name) {
         res.status(400).json({
           success: false,
-          message: 'email, name and contactNumber are required',
+          message: 'Email and name are required',
         });
         return;
       }
 
       const user = await this.userService.getUserByEmailOrContact(email, contactNumber);
-
       if (!user) {
         res.status(404).json({
           success: false,
@@ -358,14 +357,17 @@ export class AuthController {
 
       const userResponse = user.toObject();
       delete userResponse.password;
-
-      const token = generateToken({
+      const tokenPayload: any = {
         userId: user._id,
         email: user.email,
         contactNumber: user.contactNumber,
         name: user.name,
         companyIds: user.memberships.map((membership) => membership.companyId),
-      });
+      };
+      if (user.memberships.length === 1) {
+        tokenPayload.loggedInCompanyId = user.memberships[0].companyId;
+      }
+      const token = generateToken(tokenPayload);
 
       res.json({
         success: true,

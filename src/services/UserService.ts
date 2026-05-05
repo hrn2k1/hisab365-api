@@ -27,13 +27,16 @@ export class UserService {
    */
   async getUserByEmailOrContact(email: string, contactNumber: string): Promise<IUser | null> {
     const escapedEmail = email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-    return User.findOne({
-      $or: [
-        { email: { $regex: `^${escapedEmail}$`, $options: 'i' } },
-        { contactNumber },
-      ],
-    });
+    if (contactNumber) {
+      return User.findOne({
+        $or: [
+          { email: { $regex: `^${escapedEmail}$`, $options: 'i' } },
+          { contactNumber },
+        ],
+      });
+    } else {
+      return User.findOne({ email: { $regex: `^${escapedEmail}$`, $options: 'i' } });
+    }
   }
 
   /**
@@ -141,7 +144,7 @@ export class UserService {
 
     // Compare password using bcrypt
     const isPasswordValid = await user.comparePassword(password);
-    
+
     if (!isPasswordValid) {
       return null;
     }
@@ -162,7 +165,7 @@ export class UserService {
 
     // Verify old password
     const isPasswordValid = await user.comparePassword(oldPassword);
-    
+
     if (!isPasswordValid) {
       throw new Error('Current password is incorrect');
     }
