@@ -245,6 +245,16 @@ import { CompanyService } from '../services/CompanyService';
  *             example:
  *               success: true
  *               token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImlzcyI6ImhybnNvZnQuY29tIn0..."
+ *               data: 
+ *                  id: "12345678-90ab-cdef-1234-567890abcdef"
+ *                  name: "Masjid Al Azad"
+ *                  addressLine1: "Sheikhpara, Joypurhat"
+ *                  addressLine2: "Joypurhat, Bangladesh"
+ *                  type: "Masjid"
+ *                  contactPerson: "Abdullah"
+ *                  contactNumber: "+880123456789"
+ *                  contactEmail: "abdullah@example.com"
+ *                  status: "active"
  *               message: "Successfully selected company: 12345678-90ab-cdef-1234-567890abcdef"
  *       400:
  *         description: Missing or invalid companyId
@@ -317,6 +327,10 @@ export class AuthController {
 
       if (user.memberships.length === 1) {
         tokenPayload.loggedInCompanyId = user.memberships[0].companyId;
+        const company = await this.companyService.getCompanyById(tokenPayload.loggedInCompanyId);
+        if (company) {
+          tokenPayload.loggedInCompanyName = company.name;
+        }
       }
 
       const token = generateToken(tokenPayload);
@@ -366,6 +380,10 @@ export class AuthController {
       };
       if (user.memberships.length === 1) {
         tokenPayload.loggedInCompanyId = user.memberships[0].companyId;
+        const company = await this.companyService.getCompanyById(tokenPayload.loggedInCompanyId);
+        if (company) {
+          tokenPayload.loggedInCompanyName = company.name;
+        }
       }
       const token = generateToken(tokenPayload);
 
@@ -505,7 +523,14 @@ export class AuthController {
         });
         return;
       }
-
+      const company = await this.companyService.getCompanyById(companyId);
+      if (!company) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid companyId',
+        });
+        return;
+      }
       // Generate new token with loggedInCompanyId
       const newToken = generateToken({
         userId: req.user.userId,
@@ -514,11 +539,17 @@ export class AuthController {
         name: req.user.name,
         companyIds: req.user.companyIds,
         loggedInCompanyId: companyId,
+        loggedInCompanyName: company.name,
       });
 
       res.json({
         success: true,
         token: newToken,
+        data: {
+          id: company._id,
+          ...company.toObject(),
+          _id: undefined,
+        },
         message: `Successfully selected company: ${companyId}`,
       });
     } catch (error) {

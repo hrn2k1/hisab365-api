@@ -7,6 +7,7 @@ interface TokenPayload {
   name: string;
   companyIds: string[];
   loggedInCompanyId?: string;
+  loggedInCompanyName?: string;
 }
 
 /**
@@ -27,7 +28,10 @@ export function generateToken(payload: TokenPayload): string {
   if (payload.loggedInCompanyId) {
     tokenData.loggedInCompanyId = payload.loggedInCompanyId;
   }
-  
+  // Include loggedInCompanyName if provided
+  if (payload.loggedInCompanyName) {
+    tokenData.loggedInCompanyName = payload.loggedInCompanyName;
+  }
   const token = jwt.sign(
     tokenData,
     secret,
@@ -55,8 +59,9 @@ export function verifyToken(token: string): TokenPayload | null {
       email: decoded.email,
       contactNumber: decoded.contactNumber,
       name: decoded.name,
-      companyIds: decoded.companyIds,
+      companyIds: decoded.companyIds ?? [],
       ...(decoded.loggedInCompanyId && { loggedInCompanyId: decoded.loggedInCompanyId }),
+      ...(decoded.loggedInCompanyName && { loggedInCompanyName: decoded.loggedInCompanyName }),
     };
   } catch (error) {
     return null;
@@ -75,7 +80,9 @@ export function decodeToken(token: string): TokenPayload | null {
       email: decoded.email,
       contactNumber: decoded.contactNumber,
       name: decoded.name,
-      companyIds: decoded.companyIds
+      companyIds: decoded.companyIds,
+      ...(decoded.loggedInCompanyId && { loggedInCompanyId: decoded.loggedInCompanyId }),
+      ...(decoded.loggedInCompanyName && { loggedInCompanyName: decoded.loggedInCompanyName }),
     } : null;
   } catch (error) {
     return null;
