@@ -362,9 +362,10 @@ export class AuthController {
 
       const user = await this.userService.getUserByEmailOrContact(email, contactNumber);
       if (!user) {
-        res.status(404).json({
+        res.status(200).json({
           success: false,
-          message: 'No user found with the provided email or contact number',
+          messageCode: 'USER_NOT_FOUND',
+          message: 'Your email address or phone number is not registered with any organization. Please contact your organization admin to get access or register your organization if you are an admin.',
         });
         return;
       }
