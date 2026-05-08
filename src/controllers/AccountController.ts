@@ -6,10 +6,18 @@ import { AccountService } from '../services/AccountService';
  * @swagger
  * /accounts:
  *   get:
- *     summary: Get all accounts
- *     description: Retrieve all accounts from the system
+ *     summary: Get accounts (optionally by type)
+ *     description: Retrieve all accounts, or filter by type when query parameter is provided
  *     tags:
  *       - Accounts
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: ['Asset', 'Cash', 'Bank', 'Supplier', 'Customer', 'Income', 'Expense']
+ *         description: Optional account type filter. If empty or not provided, returns all accounts.
  *     responses:
  *       200:
  *         description: Successfully retrieved all accounts
@@ -45,33 +53,6 @@ import { AccountService } from '../services/AccountService';
  *               $ref: '#/components/schemas/Account'
  *       404:
  *         description: Account not found
- */
-
-/**
- * @swagger
- * /accounts/type/{type}:
- *   get:
- *     summary: Get accounts by type
- *     description: Retrieve all accounts of a specific type
- *     tags:
- *       - Accounts
- *     parameters:
- *       - in: path
- *         name: type
- *         required: true
- *         schema:
- *           type: string
- *           enum: ['Asset', 'Cash', 'Bank', 'Supplier', 'Customer', 'Income', 'Expense']
- *         description: Account type
- *     responses:
- *       200:
- *         description: Accounts retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Account'
  */
 
 /**
@@ -194,22 +175,9 @@ export class AccountController {
   @Get()
   @Authenticated()
   async getAllAccounts(req: Request, res: Response): Promise<void> {
-    const accounts = await new AccountService(req.user?.loggedInCompanyId!).getAllAccounts();
-    res.json({ success: true, data: accounts });
-  }
-
-  @Get('/type/:type')
-  @Authenticated()
-  async getAccountsByType(req: Request, res: Response): Promise<void> {
-    const { type } = req.params;
-    const validTypes = ['Asset', 'Cash', 'Bank', 'Supplier', 'Customer', 'Income', 'Expense'];
-    
-    if (!validTypes.includes(type)) {
-      res.status(400).json({ success: false, message: `Invalid type. Must be one of: ${validTypes.join(', ')}` });
-      return;
-    }
-
-    const accounts = await new AccountService(req.user?.loggedInCompanyId!).getAccountsByType(type);
+    const type = typeof req.query.type === 'string' ? req.query.type.trim() : '';
+    const accountService = new AccountService(req.user?.loggedInCompanyId!);
+    const accounts = type ? await accountService.getAccountsByType(type) : await accountService.getAllAccounts();
     res.json({ success: true, data: accounts });
   }
 
@@ -237,12 +205,6 @@ export class AccountController {
       return;
     }
 
-    const validTypes = ['Asset', 'Cash', 'Bank', 'Supplier', 'Customer', 'Income', 'Expense'];
-    if (!validTypes.includes(type)) {
-      res.status(400).json({ success: false, message: `Invalid type. Must be one of: ${validTypes.join(', ')}` });
-      return;
-    }
-
     const account = await new AccountService(req.user?.loggedInCompanyId!).createAccount({
       name,
       type,
@@ -259,14 +221,6 @@ export class AccountController {
   async updateAccount(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     const { name, type, openingBalance, currentBalance, props } = req.body;
-
-    if (type) {
-      const validTypes = ['Asset', 'Cash', 'Bank', 'Supplier', 'Customer', 'Income', 'Expense'];
-      if (!validTypes.includes(type)) {
-        res.status(400).json({ success: false, message: `Invalid type. Must be one of: ${validTypes.join(', ')}` });
-        return;
-      }
-    }
 
     const account = await new AccountService(req.user?.loggedInCompanyId!).updateAccount(id, {
       name,

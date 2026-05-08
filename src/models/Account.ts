@@ -7,10 +7,8 @@ export interface IAccount extends Document {
   name: string;
   openingBalance: number;
   currentBalance: number;
-  type: 'Asset' | 'Cash' | 'Bank' | 'Supplier' | 'Customer' | 'Income' | 'Expense';
-  props?: {
-    [key: string]: any;
-  };
+  type: string;
+  props?: Record<string, any>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,15 +25,16 @@ const accountSchema = new Schema<IAccount>(
     },
     openingBalance: {
       type: Number,
+      required: true,
       default: 0,
     },
     currentBalance: {
       type: Number,
+      required: true,
       default: 0,
     },
     type: {
       type: String,
-      enum: ['Asset', 'Cash', 'Bank', 'Supplier', 'Customer', 'Income', 'Expense'],
       required: true,
     },
     props: {
@@ -44,6 +43,8 @@ const accountSchema = new Schema<IAccount>(
     },
   },
   {
+    // Allow unknown top-level keys, matching [key: string]: any in IAccount.
+    strict: false,
     timestamps: true,
     versionKey: false,
   }
