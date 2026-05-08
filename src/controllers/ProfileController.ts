@@ -44,11 +44,95 @@ import { CompanyService } from '../services/CompanyService';
  *                 gender: "Male"
  *                 divisionId: 1
  *                 districtId: 1
+ *                 thanaId: 1
  *                 props:
  *                   address: "Sheikhpara, Joypurhat"
  *                   bloodGroup: "A+"
  *                 createdAt: "2024-06-01T00:00:00Z"
  *                 updatedAt: "2024-06-01T00:00:00Z"
+ *       401:
+ *         description: Unauthorized - Missing or invalid Bearer token
+ *       404:
+ *         description: User not found
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
+
+/**
+ * @swagger
+ * /profile/me:
+ *   post:
+ *     summary: Update current user profile
+ *     description: Update the profile of the currently authenticated user (from Bearer token)
+ *     tags:
+ *       - Profile
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               contactNumber:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               gender:
+ *                 type: string
+ *               divisionId:
+ *                 type: number
+ *               districtId:
+ *                 type: number
+ *               thanaId:
+ *                 type: number
+ *                 nullable: true
+ *               props:
+ *                 type: object
+ *                 description: Additional profile properties (address, photo, birthDate, bloodGroup, etc.)
+ *           example:
+ *             name: "John Doe"
+ *             contactNumber: "+880123456789"
+ *             email: "john.doe@example.com"
+ *             gender: "Male"
+ *             divisionId: 1
+ *             districtId: 1
+ *             thanaId: 1
+ *             props:
+ *               address: "Sheikhpara, Joypurhat"
+ *               bloodGroup: "A+"
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Profile updated successfully"
+ *               data:
+ *                 id: "6a61aded-906a-4801-8543-d1d5ca9e0193"
+ *                 name: "John Doe"
+ *                 contactNumber: "+880123456789"
+ *                 email: "john.doe@example.com"
+ *                 type: "user"
+ *                 gender: "Male"
+ *                 divisionId: 1
+ *                 districtId: 1
+ *                 thanaId: 1
+ *                 props:
+ *                   address: "Sheikhpara, Joypurhat"
+ *                   bloodGroup: "A+"
+ *       400:
+ *         description: Invalid request body
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               message: "At least one profile field is required"
  *       401:
  *         description: Unauthorized - Missing or invalid Bearer token
  *       404:
@@ -209,6 +293,93 @@ export class ProfileController {
         data: userResponse,
       });
     } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
+
+  @Authenticated()
+  @Post('/me')
+  async updateMyProfile(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User ID not found in authorization token',
+        });
+        return;
+      }
+
+      const {
+        name,
+        contactNumber,
+        email,
+        gender,
+        divisionId,
+        districtId,
+        thanaId,
+        props,
+      } = req.body ?? {};
+
+      if (props !== undefined && (typeof props !== 'object' || Array.isArray(props) || props === null)) {
+        res.status(400).json({
+          success: false,
+          message: 'props must be a valid object',
+        });
+        return;
+      }
+
+      const updateData: Record<string, unknown> = {};
+
+      if (name !== undefined) updateData.name = name;
+      if (contactNumber !== undefined) updateData.contactNumber = contactNumber;
+      if (email !== undefined) updateData.email = email;
+      if (gender !== undefined) updateData.gender = gender;
+      if (divisionId !== undefined) updateData.divisionId = divisionId;
+      if (districtId !== undefined) updateData.districtId = districtId;
+      if (thanaId !== undefined) updateData.thanaId = thanaId;
+      if (props !== undefined) updateData.props = props;
+
+      if (Object.keys(updateData).length === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'At least one profile field is required',
+        });
+        return;
+      }
+
+      const updatedUser = await this.userService.setUser(userId, updateData);
+
+      if (!updatedUser) {
+        res.status(404).json({
+          success: false,
+          message: 'User not found',
+        });
+        return;
+      }
+
+      const userResponse = updatedUser.toObject();
+      delete userResponse.password;
+
+      res.json({
+        success: true,
+        message: 'Profile updated successfully',
+        data: userResponse,
+      });
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'code' in error && (error as { code?: number }).code === 11000) {
+        const duplicateField = Object.keys((error as { keyPattern?: Record<string, unknown> }).keyPattern ?? {})[0] || 'field';
+        res.status(400).json({
+          success: false,
+          message: `${duplicateField} already exists`,
+        });
+        return;
+      }
+
       res.status(500).json({
         success: false,
         message: error instanceof Error ? error.message : 'An error occurred',
