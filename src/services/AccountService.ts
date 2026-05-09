@@ -44,6 +44,21 @@ export class AccountService {
     return await this.accountModel.findByIdAndUpdate(id, data, { new: true });
   }
 
+    /**
+     * Set specific account fields without replacing the whole document
+     */
+    async setAccount(id: string, accountData: Partial<IAccount>): Promise<IAccount | null> {
+      const fieldsToSet = Object.fromEntries(
+        Object.entries(accountData).filter(([, value]) => value !== undefined)
+      );
+  
+      return this.accountModel.findByIdAndUpdate(
+        id,
+        { $set: fieldsToSet },
+        { new: true, runValidators: true }
+      );
+    }
+
   /**
    * Delete account
    */

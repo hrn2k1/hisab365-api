@@ -84,6 +84,43 @@ export class UserService {
   }
 
   /**
+   * Edit an existing membership by companyId
+   */
+  async editMembership(
+    id: string,
+    companyId: string,
+    membershipData: Partial<IMembership>
+  ): Promise<IUser | null> {
+    const fieldsToSet: Record<string, any> = {};
+
+    if (membershipData.membershipType !== undefined) {
+      fieldsToSet['memberships.$.membershipType'] = membershipData.membershipType;
+    }
+    if (membershipData.role !== undefined) {
+      fieldsToSet['memberships.$.role'] = membershipData.role;
+    }
+    if (membershipData.joinedAt !== undefined) {
+      fieldsToSet['memberships.$.joinedAt'] = membershipData.joinedAt;
+    }
+    if (membershipData.status !== undefined) {
+      fieldsToSet['memberships.$.status'] = membershipData.status;
+      fieldsToSet['memberships.$.statusDate'] = membershipData.statusDate ?? new Date();
+    } else if (membershipData.statusDate !== undefined) {
+      fieldsToSet['memberships.$.statusDate'] = membershipData.statusDate;
+    }
+
+    if (Object.keys(fieldsToSet).length === 0) {
+      return User.findById(id);
+    }
+
+    return User.findOneAndUpdate(
+      { _id: id, 'memberships.companyId': companyId },
+      { $set: fieldsToSet },
+      { new: true, runValidators: true }
+    );
+  }
+
+  /**
    * Set specific user fields without replacing the whole document
    */
   async setUser(id: string, userData: Partial<IUser>): Promise<IUser | null> {

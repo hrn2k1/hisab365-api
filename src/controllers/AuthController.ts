@@ -460,6 +460,7 @@ export class AuthController {
           password: payload.password,
           memberships: [{
             companyId: company.id,
+            membershipType: 'user',
             role: 'admin',
             joinedAt: new Date(),
             status: 'active',
@@ -471,6 +472,7 @@ export class AuthController {
         // If user already exists, push membership to the new company
         await this.userService.addMembership(existingUser._id, {
           companyId: company.id,
+          membershipType: 'user',
           role: 'admin',
           joinedAt: new Date(),
           status: 'active',

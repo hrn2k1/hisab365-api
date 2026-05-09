@@ -12,9 +12,10 @@ export interface IUserProps {
 }
 export interface IMembership {
     companyId: string;
+    membershipType: string | 'general' | 'member' | 'customer' | 'supplier';
     role: string | 'user' | 'admin';
     joinedAt: Date | null;
-    status: 'active' | 'pending' | 'rejected';
+    status: string | 'active' | 'pending' | 'rejected' | 'inactive';
     statusDate: Date | null;
 }
 
@@ -98,7 +99,7 @@ const userSchema = new Schema<IUser>(
                 companyId: { type: String, required: true },
                 role: { type: String, enum: ['user', 'admin'], required: true },
                 joinedAt: { type: Date, default: null },
-                status: { type: String, enum: ['active', 'pending', 'rejected'], required: true, default: 'pending' },
+                status: { type: String, enum: ['active', 'pending', 'rejected', 'inactive'], required: true, default: 'pending' },
                 statusDate: { type: Date, default: null },
             }],
         props: {

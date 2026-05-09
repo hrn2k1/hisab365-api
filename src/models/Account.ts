@@ -7,10 +7,12 @@ export interface IAccount extends Document {
   name: string;
   openingBalance: number;
   currentBalance: number;
+  remarks?: string;
   type: string;
   props?: Record<string, any>;
   createdAt: Date;
   updatedAt: Date;
+  userId?: string;
 }
 
 const accountSchema = new Schema<IAccount>(
@@ -33,6 +35,9 @@ const accountSchema = new Schema<IAccount>(
       required: true,
       default: 0,
     },
+    remarks: {
+      type: String,
+    },
     type: {
       type: String,
       required: true,
@@ -40,6 +45,10 @@ const accountSchema = new Schema<IAccount>(
     props: {
       type: Schema.Types.Mixed,
       default: {},
+    },
+    userId: {
+      type: String,
+      default: null,
     },
   },
   {

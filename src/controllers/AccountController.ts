@@ -1,6 +1,8 @@
-import { Request, Response } from 'express';
+import e, { Request, Response } from 'express';
 import { Controller, Get, Post, Put, Delete, Authenticated } from '../decorators/index';
 import { AccountService } from '../services/AccountService';
+import { UserService } from '../services/UserService';
+import { randomUUID } from 'crypto';
 
 /**
  * @swagger
@@ -16,7 +18,6 @@ import { AccountService } from '../services/AccountService';
  *         required: false
  *         schema:
  *           type: string
- *           enum: ['Asset', 'Cash', 'Bank', 'Supplier', 'Customer', 'Income', 'Expense']
  *         description: Optional account type filter. If empty or not provided, returns all accounts.
  *     responses:
  *       200:
@@ -76,7 +77,6 @@ import { AccountService } from '../services/AccountService';
  *                 example: "Bank Account"
  *               type:
  *                 type: string
- *                 enum: ['Asset', 'Cash', 'Bank', 'Supplier', 'Customer', 'Income', 'Expense']
  *                 example: "Bank"
  *               openingBalance:
  *                 type: number
@@ -124,7 +124,6 @@ import { AccountService } from '../services/AccountService';
  *                 type: string
  *               type:
  *                 type: string
- *                 enum: ['Asset', 'Cash', 'Bank', 'Supplier', 'Customer', 'Income', 'Expense']
  *               openingBalance:
  *                 type: number
  *               currentBalance:
@@ -250,5 +249,378 @@ export class AccountController {
     }
 
     res.json({ success: true, message: 'Account deleted successfully' });
+  }
+
+  /**
+   * @swagger
+   * /accounts/{accountId}/enable-login:
+   *   post:
+   *     summary: Enable login for an account
+   *     description: Create a user account for a CUSTOMER or SUPPLIER account to enable login functionality. Extracts user details from account properties (CONACT_PERSON, CONACT_EMAIL, CONACT_NUMBER).
+   *     tags:
+   *       - Accounts
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: accountId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Account ID (must be CUSTOMER or SUPPLIER type)
+   *         example: "550e8400-e29b-41d4-a716-446655440000"
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - password
+   *             properties:
+   *               password:
+   *                 type: string
+   *                 description: Password for the new user account
+   *                 example: "SecurePassword@123"
+   *               role:
+   *                 type: string
+   *                 description: Role for the membership (optional, defaults to 'user')
+   *                 example: "user"
+   *     responses:
+   *       201:
+   *         description: Login enabled successfully - User account created
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *                 message:
+   *                   type: string
+   *                   example: "Login enabled successfully"
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: string
+   *                       example: "6a61aded-906a-4801-8543-d1d5ca9e0193"
+   *                     name:
+   *                       type: string
+   *                       example: "John Doe"
+   *                     email:
+   *                       type: string
+   *                       example: "john.doe@example.com"
+   *                     contactNumber:
+   *                       type: string
+   *                       example: "+880123456789"
+   *                     type:
+   *                       type: string
+   *                       example: "user"
+   *                     memberships:
+   *                       type: array
+   *                       items:
+   *                         type: object
+   *                         properties:
+   *                           companyId:
+   *                             type: string
+   *                           membershipType:
+   *                             type: string
+   *                             enum: ['customer', 'supplier']
+   *                           role:
+   *                             type: string
+   *                           status:
+   *                             type: string
+   *                             enum: ['active', 'pending', 'rejected']
+   *       400:
+   *         description: Invalid input or missing required account properties
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: false
+   *                 message:
+   *                   type: string
+   *             examples:
+   *               invalidType:
+   *                 summary: Invalid account type
+   *                 value:
+   *                   success: false
+   *                   message: "Login can be enabled only for CUSTOMER/SUPPLIER accounts"
+   *               missingProps:
+   *                 summary: Missing required account properties
+   *                 value:
+   *                   success: false
+   *                   message: "Contact person, contact email or contact number are required to enable login"
+   *               missingCompany:
+   *                 summary: Missing company context
+   *                 value:
+   *                   success: false
+   *                   message: "Logged in company is required"
+   *       401:
+   *         description: Unauthorized - Missing or invalid Bearer token
+   *       404:
+   *         description: Account not found
+   *         content:
+   *           application/json:
+   *             example:
+   *               success: false
+   *               message: "Account not found"
+   *       409:
+   *         description: Conflict - User already exists with this email or contact number
+   *         content:
+   *           application/json:
+   *             example:
+   *               success: false
+   *               message: "A user already exists with this email or contact number"
+   */
+
+  @Post('/:accountId/enable-login')
+  @Authenticated()
+  async enableAccountLogin(req: Request, res: Response): Promise<void> {
+    const { accountId } = req.params;
+    const companyId = req.user?.loggedInCompanyId;
+    const { password, role } = req.body;
+
+    if (!companyId) {
+      res.status(400).json({ success: false, message: 'Logged in company is required' });
+      return;
+    }
+
+    const accountService = new AccountService(companyId);
+    const userService = new UserService();
+    const account = await accountService.getAccountById(accountId);
+
+    if (!account) {
+      res.status(404).json({ success: false, message: 'Account not found' });
+      return;
+    }
+
+    const normalizedType = String(account.type || '').trim().toLowerCase();
+    if (!['customer', 'supplier'].includes(normalizedType)) {
+      res.status(400).json({
+        success: false,
+        message: 'Login can be enabled only for CUSTOMER/SUPPLIER accounts',
+      });
+      return;
+    }
+
+    const props = (account.props || {}) as Record<string, any>;
+    const name = String(props['CONACT_PERSON'] || '').trim();
+    const email = String(props['CONACT_EMAIL'] || '').trim();
+    const contactNumber = String(props['CONACT_NUMBER'] || '').trim();
+
+    if (!name || (!email && !contactNumber)) {
+      res.status(400).json({
+        success: false,
+        message: 'Contact person, contact email or contact number are required to enable login',
+      });
+      return;
+    }
+
+    let user = await userService.getUserByEmailOrContact(email, contactNumber);
+    if (user) {
+      if (!user.memberships.find(m => m.companyId === companyId)) {
+        await userService.addMembership(user._id, {
+          companyId,
+          membershipType: normalizedType,
+          role: role || 'user',
+          joinedAt: new Date(),
+          status: 'active',
+          statusDate: new Date(),
+        });
+      } else {
+        await userService.editMembership(user._id, companyId, {
+          membershipType: normalizedType,
+          role: role || 'user',
+          status: 'active',
+          statusDate: new Date(),
+        });
+      }
+    } else {
+      user = await userService.createUser({
+        name,
+        email,
+        contactNumber,
+        password,
+        type: 'user',
+        memberships: [
+          {
+            companyId,
+            membershipType: normalizedType,
+            role: role || 'user',
+            joinedAt: new Date(),
+            status: 'active',
+            statusDate: new Date(),
+          },
+        ],
+      } as any);
+    }
+    await accountService.setAccount(accountId, {
+      userId: user._id,
+    });
+
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    res.status(200).json({
+      success: true,
+      message: 'Login enabled successfully',
+      data: userResponse,
+    });
+  }
+
+  /**
+   * @swagger
+   * /accounts/{accountId}/disable-login:
+   *   post:
+   *     summary: Disable login for an account
+   *     description: Disable login functionality by setting the user membership status to 'inactive'. The user is found by account.userId, email, or contact number.
+   *     tags:
+   *       - Accounts
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: accountId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Account ID
+   *         example: "550e8400-e29b-41d4-a716-446655440000"
+   *     responses:
+   *       200:
+   *         description: Login disabled successfully - User membership status set to inactive
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *                 message:
+   *                   type: string
+   *                   example: "Login disabled successfully"
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: string
+   *                       example: "6a61aded-906a-4801-8543-d1d5ca9e0193"
+   *                     name:
+   *                       type: string
+   *                       example: "John Doe"
+   *                     email:
+   *                       type: string
+   *                       example: "john.doe@example.com"
+   *                     contactNumber:
+   *                       type: string
+   *                       example: "+880123456789"
+   *                     memberships:
+   *                       type: array
+   *                       items:
+   *                         type: object
+   *                         properties:
+   *                           companyId:
+   *                             type: string
+   *                           status:
+   *                             type: string
+   *                             enum: ['active', 'pending', 'rejected', 'inactive']
+   *                           statusDate:
+   *                             type: string
+   *                             format: date-time
+   *       400:
+   *         description: Invalid input or missing company context
+   *         content:
+   *           application/json:
+   *             example:
+   *               success: false
+   *               message: "Logged in company is required"
+   *       401:
+   *         description: Unauthorized - Missing or invalid Bearer token
+   *       404:
+   *         description: Account or user not found
+   *         content:
+   *           application/json:
+   *             examples:
+   *               accountNotFound:
+   *                 summary: Account not found
+   *                 value:
+   *                   success: false
+   *                   message: "Account not found"
+   *               userNotFound:
+   *                 summary: User not found
+   *                 value:
+   *                   success: false
+   *                   message: "User not found for this account"
+   */
+
+  @Post('/:accountId/disable-login')
+  @Authenticated()
+  async disableAccountLogin(req: Request, res: Response): Promise<void> {
+    const { accountId } = req.params;
+    const companyId = req.user?.loggedInCompanyId;
+
+    if (!companyId) {
+      res.status(400).json({ success: false, message: 'Logged in company is required' });
+      return;
+    }
+
+    const accountService = new AccountService(companyId);
+    const userService = new UserService();
+    const account = await accountService.getAccountById(accountId);
+
+    if (!account) {
+      res.status(404).json({ success: false, message: 'Account not found' });
+      return;
+    }
+
+    let user = null;
+
+    // Try to find user by account.userId first
+    if (account.userId) {
+      user = await userService.getUserById(account.userId);
+    }
+
+    // If not found by userId, try by email/contact from props
+    if (!user) {
+      const props = (account.props || {}) as Record<string, any>;
+      const email = String(props['CONACT_EMAIL'] || '').trim();
+      const contactNumber = String(props['CONACT_NUMBER'] || '').trim();
+
+      if (email || contactNumber) {
+        user = await userService.getUserByEmailOrContact(email, contactNumber);
+      }
+    }
+
+    if (!user) {
+      res.status(404).json({ success: false, message: 'User not found for this account' });
+      return;
+    }
+
+    // Update membership status to inactive
+    const updatedUser = await userService.editMembership(user._id, companyId, {
+      status: 'inactive',
+      statusDate: new Date(),
+    });
+
+    if (!updatedUser) {
+      res.status(404).json({ success: false, message: 'Membership not found for this user in the company' });
+      return;
+    }
+
+    const userResponse = updatedUser.toObject();
+    delete userResponse.password;
+
+    res.status(200).json({
+      success: true,
+      message: 'Login disabled successfully',
+      data: userResponse,
+    });
   }
 }
