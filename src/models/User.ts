@@ -29,6 +29,7 @@ export interface IUser extends Document {
     divisionId?: number;
     districtId?: number;
     thanaId?: number | null;
+    photo?: string;
     memberships: IMembership[];
     props: IUserProps;
     createdAt: Date;
@@ -38,7 +39,6 @@ export interface IUser extends Document {
 
 const userPropsSchema = new Schema({
     address: String,
-    photo: String,
     birthDate: String,
     joiningDate: String,
     bloodGroup: String,
@@ -86,6 +86,10 @@ const userSchema = new Schema<IUser>(
             default: null,
         },
         gender: {
+            type: String,
+            required: false,
+        },
+        photo: {
             type: String,
             required: false,
         },

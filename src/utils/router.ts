@@ -1,5 +1,11 @@
 import { Router } from 'express';
-import { CONTROLLER_PREFIX_METADATA_KEY, ROUTE_METADATA_KEY, RouteDefinition, AUTHENTICATED_METADATA_KEY } from '../decorators';
+import {
+  CONTROLLER_PREFIX_METADATA_KEY,
+  ROUTE_METADATA_KEY,
+  RouteDefinition,
+  AUTHENTICATED_METADATA_KEY,
+  MIDDLEWARE_METADATA_KEY,
+} from '../decorators';
 import { authMiddleware } from '../middlewares/authMiddleware';
 
 /**
@@ -17,9 +23,12 @@ export function registerControllers(router: Router, controllers: any[]): void {
       
       // Check if route requires authentication
       const isAuthenticated = Reflect.getMetadata(AUTHENTICATED_METADATA_KEY, controllerInstance, route.handlerName) || false;
+      const routeMiddlewares = Reflect.getMetadata(MIDDLEWARE_METADATA_KEY, controllerInstance, route.handlerName) || [];
       
       // Apply auth middleware if route is authenticated
-      const middlewares = isAuthenticated ? [authMiddleware, handler] : [handler];
+      const middlewares = isAuthenticated
+        ? [authMiddleware, ...routeMiddlewares, handler]
+        : [...routeMiddlewares, handler];
 
       switch (route.method) {
         case 'get':

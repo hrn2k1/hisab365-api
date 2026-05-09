@@ -51,9 +51,10 @@ import { CompanyService } from '../services/CompanyService';
  *                 email: "john.doe@example.com"
  *                 contactNumber: "+880123456789"
  *                 type: "user"
- *                 companyId: "12345678-90ab-cdef-1234-567890abcdef"
  *                 divisionId: 1
  *                 districtId: 1
+ *                 thanaId: 1
+ *                 photo: "https://res.cloudinary.com/dgzyst4sj/image/upload/v1696200000/hisab365/profile-photos/6a61aded-906a-4801-8543-d1d5ca9e0193.jpg"
  *       400:
  *         description: Missing required fields
  *         content:

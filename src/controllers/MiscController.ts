@@ -97,7 +97,6 @@ import { Setting } from '../models/Setting';
 
 @Controller('')
 export class MiscController {
-
 	@Get('/settings-data')
 	async getSettingsData(req: Request, res: Response): Promise<void> {
 		try {

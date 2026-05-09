@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { RequestHandler } from 'express';
 
 export interface RouteDefinition {
   path: string;
@@ -15,6 +16,7 @@ export interface ControllerMetadata {
 export const CONTROLLER_PREFIX_METADATA_KEY = Symbol('CONTROLLER_PREFIX');
 export const ROUTE_METADATA_KEY = Symbol('ROUTES');
 export const AUTHENTICATED_METADATA_KEY = Symbol('AUTHENTICATED');
+export const MIDDLEWARE_METADATA_KEY = Symbol('MIDDLEWARES');
 
 /**
  * Controller decorator - marks a class as a controller
@@ -119,5 +121,14 @@ export function Patch(path: string = '') {
 export function Authenticated() {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     Reflect.defineMetadata(AUTHENTICATED_METADATA_KEY, true, target, propertyKey);
+  };
+}
+
+/**
+ * Use decorator - attaches one or more middlewares to a route handler
+ */
+export function Use(...middlewares: RequestHandler[]) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    Reflect.defineMetadata(MIDDLEWARE_METADATA_KEY, middlewares, target, propertyKey);
   };
 }

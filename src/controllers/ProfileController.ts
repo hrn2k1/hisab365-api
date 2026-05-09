@@ -1,7 +1,9 @@
 import { Request, Response } from 'express';
-import { Controller, Get, Post, Authenticated } from '../decorators';
+import { Controller, Get, Post, Delete, Authenticated, Use } from '../decorators';
 import { UserService } from '../services/UserService';
 import { CompanyService } from '../services/CompanyService';
+import { singleFileUpload } from '../middlewares/uploadMiddleware';
+import CloudinaryService from '../services/storage/CloudinaryService';
 
 /**
  * @swagger
@@ -45,6 +47,7 @@ import { CompanyService } from '../services/CompanyService';
  *                 divisionId: 1
  *                 districtId: 1
  *                 thanaId: 1
+ *                 photo: "https://res.cloudinary.com/dgzyst4sj/image/upload/v1696200000/hisab365/profile-photos/6a61aded-906a-4801-8543-d1d5ca9e0193.jpg"
  *                 props:
  *                   address: "Sheikhpara, Joypurhat"
  *                   bloodGroup: "A+"
@@ -102,9 +105,10 @@ import { CompanyService } from '../services/CompanyService';
  *             divisionId: 1
  *             districtId: 1
  *             thanaId: 1
+ *             photo: "https://res.cloudinary.com/dgzyst4sj/image/upload/v1696200000/hisab365/profile-photos/6a61aded-906a-4801-8543-d1d5ca9e0193.jpg"
  *             props:
  *               address: "Sheikhpara, Joypurhat"
- *               bloodGroup: "A+"
+ *               bloodGroup: "A+"            
  *     responses:
  *       200:
  *         description: Profile updated successfully
@@ -123,6 +127,7 @@ import { CompanyService } from '../services/CompanyService';
  *                 divisionId: 1
  *                 districtId: 1
  *                 thanaId: 1
+ *                 photo: "https://res.cloudinary.com/dgzyst4sj/image/upload/v1696200000/hisab365/profile-photos/6a61aded-906a-4801-8543-d1d5ca9e0193.jpg"
  *                 props:
  *                   address: "Sheikhpara, Joypurhat"
  *                   bloodGroup: "A+"
@@ -229,6 +234,55 @@ import { CompanyService } from '../services/CompanyService';
  *         description: Unauthorized - Missing or invalid Bearer token
  *       500:
  *         $ref: '#/components/responses/ServerError'
+ */
+
+/**
+ * @swagger
+ * /profile/photograph:
+ *   post:
+ *     summary: Upload profile photograph
+ *     description: Upload authenticated user's profile photo to Cloudinary and update user photo field.
+ *     tags:
+ *       - Profile
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - file
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       201:
+ *         description: Profile photograph uploaded successfully
+ *       400:
+ *         description: Invalid image or upload failed
+ *       401:
+ *         description: Unauthorized - Missing or invalid Bearer token
+ *       404:
+ *         description: User not found
+ *   delete:
+ *     summary: Delete profile photograph
+ *     description: Delete authenticated user's profile photo from Cloudinary and clear user photo field.
+ *     tags:
+ *       - Profile
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile photograph deleted successfully
+ *       400:
+ *         description: Invalid photo data or delete failed
+ *       401:
+ *         description: Unauthorized - Missing or invalid Bearer token
+ *       404:
+ *         description: User or profile photo not found
  */
 
 @Controller('/profile')
@@ -433,6 +487,157 @@ export class ProfileController {
       res.status(401).json({
         success: false,
         message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
+
+  @Authenticated()
+  @Post('/photograph')
+  @Use(singleFileUpload)
+  async uploadPhotograph(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User ID not found in authorization token',
+        });
+        return;
+      }
+
+      if (!req.file) {
+        res.status(400).json({
+          success: false,
+          message: 'No image provided. Use multipart/form-data with field name "file".',
+        });
+        return;
+      }
+
+      const mimeTypeToExtension: Record<string, string> = {
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp',
+        'image/gif': 'gif',
+      };
+
+      const fileExtension = mimeTypeToExtension[req.file.mimetype];
+      if (!fileExtension) {
+        res.status(400).json({
+          success: false,
+          message: 'Only image files are allowed for profile photograph',
+        });
+        return;
+      }
+
+      const cloudinaryService = new CloudinaryService();
+      const uploadResult = await cloudinaryService.uploadImage(req.file.buffer, {
+        folder: 'hisab365/profile-photos',
+        public_id: `${userId}`,
+        overwrite: true,
+      });
+
+      const updatedUser = await this.userService.setUser(userId, {
+        photo: uploadResult.secureUrl,
+      });
+
+      if (!updatedUser) {
+        res.status(404).json({
+          success: false,
+          message: 'User not found',
+        });
+        return;
+      }
+
+      const userResponse = updatedUser.toObject();
+      delete userResponse.password;
+
+      res.status(201).json({
+        success: true,
+        message: 'Profile photograph uploaded successfully',
+        data: {          
+          ...userResponse,
+          photo: uploadResult.secureUrl,
+        },
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to upload profile photograph',
+      });
+    }
+  }
+
+  @Authenticated()
+  @Delete('/photograph')
+  async deletePhotograph(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User ID not found in authorization token',
+        });
+        return;
+      }
+
+      const user = await this.userService.getUserById(userId);
+
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          message: 'User not found',
+        });
+        return;
+      }
+
+      if (!user.photo) {
+        res.status(404).json({
+          success: false,
+          message: 'No profile photograph found',
+        });
+        return;
+      }
+
+      const cloudinaryService = new CloudinaryService();
+      const imageExtensionMatch = user.photo.match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
+      const imageExtension = imageExtensionMatch?.[1]?.toLowerCase();
+
+      if (!imageExtension) {
+        res.status(400).json({
+          success: false,
+          message: 'Could not determine image extension from photo URL',
+        });
+        return;
+      }
+
+      await cloudinaryService.deleteFile(`hisab365/profile-photos/${userId}`, 'image');
+
+      const updatedUser = await this.userService.setUser(userId, {
+        photo: '',
+      });
+
+      if (!updatedUser) {
+        res.status(404).json({
+          success: false,
+          message: 'User not found',
+        });
+        return;
+      }
+
+      const userResponse = updatedUser.toObject();
+      delete userResponse.password;
+
+      res.json({
+        success: true,
+        message: 'Profile photograph deleted successfully',
+        data: userResponse,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to delete profile photograph',
       });
     }
   }
