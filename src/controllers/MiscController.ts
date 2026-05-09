@@ -146,17 +146,9 @@ export class MiscController {
 			const setting = await Setting.findOne({}, { accountTypes: 1, _id: 0 }).lean();
 			const rawAccountTypes = (setting as any)?.accountTypes || {};
 
-			const sortedAccountTypes = Object.fromEntries(
-				Object.entries(
-					rawAccountTypes instanceof Map
-						? Object.fromEntries(rawAccountTypes)
-						: rawAccountTypes
-				).sort(([a], [b]) => a.localeCompare(b))
-			);
-
 			res.json({
 				success: true,
-				data: sortedAccountTypes,
+				data: rawAccountTypes,
 			});
 		} catch (error: any) {
 			res.status(500).json({
