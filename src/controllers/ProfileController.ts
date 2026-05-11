@@ -344,7 +344,11 @@ export class ProfileController {
 
       res.json({
         success: true,
-        data: userResponse,
+        data: {
+          ...userResponse,
+          id: userResponse._id,
+          _id: undefined
+        },
       });
     } catch (error) {
       res.status(500).json({
@@ -555,7 +559,7 @@ export class ProfileController {
       res.status(201).json({
         success: true,
         message: 'Profile photograph uploaded successfully',
-        data: {          
+        data: {
           ...userResponse,
           photo: uploadResult.secureUrl,
         },

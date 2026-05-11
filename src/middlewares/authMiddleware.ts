@@ -12,6 +12,7 @@ declare global {
         email: string;
         contactNumber: string;
         name: string;
+        type: string;
         companyIds: string[];
         loggedInCompanyId?: string;
       };

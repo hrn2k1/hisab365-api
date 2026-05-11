@@ -323,6 +323,7 @@ export class AuthController {
         email: user.email,
         contactNumber: user.contactNumber,
         name: user.name,
+        type: user.type,
         companyIds: user.memberships.map(membership => membership.companyId),
       };
 
@@ -378,6 +379,7 @@ export class AuthController {
         email: user.email,
         contactNumber: user.contactNumber,
         name: user.name,
+        type: user.type,
         companyIds: user.memberships.map((membership) => membership.companyId),
       };
       if (user.memberships.length === 1) {
@@ -541,6 +543,7 @@ export class AuthController {
         email: req.user.email,
         contactNumber: req.user.contactNumber,
         name: req.user.name,
+        type: req.user.type,
         companyIds: req.user.companyIds,
         loggedInCompanyId: companyId,
         loggedInCompanyName: company.name,

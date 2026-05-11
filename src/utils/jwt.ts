@@ -5,6 +5,7 @@ interface TokenPayload {
   email: string;
   contactNumber: string;
   name: string;
+  type: string;
   companyIds: string[];
   loggedInCompanyId?: string;
   loggedInCompanyName?: string;
@@ -21,6 +22,7 @@ export function generateToken(payload: TokenPayload): string {
     email: payload.email,
     contactNumber: payload.contactNumber,
     name: payload.name,
+    type: payload.type,
     companyIds: payload.companyIds,
   };
 
@@ -59,6 +61,7 @@ export function verifyToken(token: string): TokenPayload | null {
       email: decoded.email,
       contactNumber: decoded.contactNumber,
       name: decoded.name,
+      type: decoded.type,
       companyIds: decoded.companyIds ?? [],
       ...(decoded.loggedInCompanyId && { loggedInCompanyId: decoded.loggedInCompanyId }),
       ...(decoded.loggedInCompanyName && { loggedInCompanyName: decoded.loggedInCompanyName }),
@@ -80,6 +83,7 @@ export function decodeToken(token: string): TokenPayload | null {
       email: decoded.email,
       contactNumber: decoded.contactNumber,
       name: decoded.name,
+      type: decoded.type,
       companyIds: decoded.companyIds,
       ...(decoded.loggedInCompanyId && { loggedInCompanyId: decoded.loggedInCompanyId }),
       ...(decoded.loggedInCompanyName && { loggedInCompanyName: decoded.loggedInCompanyName }),
