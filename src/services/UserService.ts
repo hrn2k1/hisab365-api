@@ -47,6 +47,13 @@ export class UserService {
   }
 
   /**
+   * Get users by company membership
+   */
+  async getUsersByCompanyId(companyId: string): Promise<IUser[]> {
+    return User.find({ 'memberships.companyId': companyId });
+  }
+
+  /**
    * Get users by location
    */
   async getUsersByLocation(divisionId: number, districtId?: number): Promise<IUser[]> {

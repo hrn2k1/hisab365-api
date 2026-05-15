@@ -52,6 +52,21 @@ export class CompanyService {
   }
 
   /**
+   * Partially update company fields using $set
+   */
+  async setCompany(id: string, companyData: Record<string, unknown>): Promise<ICompany | null> {
+    const fieldsToSet = Object.fromEntries(
+      Object.entries(companyData).filter(([, value]) => value !== undefined)
+    );
+
+    return Company.findByIdAndUpdate(
+      id,
+      { $set: fieldsToSet },
+      { new: true, runValidators: true }
+    );
+  }
+
+  /**
    * Delete company
    */
   async deleteCompany(id: string): Promise<ICompany | null> {

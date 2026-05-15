@@ -1,9 +1,9 @@
 import { Schema, model, Document } from 'mongoose';
 import { randomUUID } from 'crypto';
 
-export interface ICompanyProps {
-    [key: string]: any;
-}
+// export interface ICompanyProps {
+//     [key: string]: any;
+// }
 
 export interface ICompany extends Document {
     name: string;
@@ -18,15 +18,15 @@ export interface ICompany extends Document {
     contactNumber: string;
     contactEmail: string;
     status?: 'active' | 'inactive' | 'pending';
-    props?: ICompanyProps;
+    [key: string]: unknown;
     createdAt: Date;
     updatedAt?: Date;
 }
 
-const companyPropsSchema = new Schema({
-    foundedYear: Number,
-    numberOfEmployees: Number,
-}, { strict: false, _id: false });
+// const companyPropsSchema = new Schema({
+//     foundedYear: Number,
+//     numberOfEmployees: Number,
+// }, { strict: false, _id: false });
 
 const companySchema = new Schema<ICompany>(
     {
@@ -81,15 +81,23 @@ const companySchema = new Schema<ICompany>(
             enum: ['active', 'inactive', 'pending'],
             default: 'pending',
         },
-        props: {
-            type: companyPropsSchema,
-            default: {},
-        },
+        // props: {
+        //     type: companyPropsSchema,
+        //     default: {},
+        // },
     },
     {
+        strict: false,
         timestamps: true,
         versionKey: false,
         toJSON: {
+            transform: function (doc, ret) {
+                ret.id = ret._id;
+                delete ret._id;
+                return ret;
+            },
+        },
+        toObject: {
             transform: function (doc, ret) {
                 ret.id = ret._id;
                 delete ret._id;

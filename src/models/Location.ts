@@ -40,6 +40,13 @@ const locationSchema = new Schema<ILocation>(
         return ret;
       },
     },
+    toObject: {
+      transform: function (doc, ret) {
+        ret.id = ret._id;
+        delete ret._id;
+        return ret;
+      },
+    }
   }
 );
 

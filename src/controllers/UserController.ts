@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Controller, Get, Post, Put, Delete, Authenticated } from '../decorators';
+import { Controller, Get, Post, Put, Patch, Delete, Authenticated } from '../decorators';
 import { UserService } from '../services/UserService';
 import { CompanyService } from '../services/CompanyService';
 
@@ -250,6 +250,67 @@ import { CompanyService } from '../services/CompanyService';
 
 /**
  * @swagger
+ * /users/{id}/membership:
+ *   patch:
+ *     summary: Partially update user membership
+ *     description: Update a user's membership role and/or status for a specific company
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - companyId
+ *             properties:
+ *               companyId:
+ *                 type: string
+ *                 description: Company ID of the membership to update
+ *               role:
+ *                 type: string
+ *                 enum: [user, admin]
+ *               status:
+ *                 type: string
+ *                 enum: [active, pending, rejected, inactive]
+ *           example:
+ *             companyId: "12345678-90ab-cdef-1234-567890abcdef"
+ *             role: "admin"
+ *             status: "active"
+ *     responses:
+ *       200:
+ *         description: User membership updated successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 id: "6a61aded-906a-4801-8543-d1d5ca9e0193"
+ *                 name: "John Doe"
+ *                 memberships:
+ *                   - companyId: "12345678-90ab-cdef-1234-567890abcdef"
+ *                     role: "admin"
+ *                     status: "active"
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         description: Unauthorized - Missing or invalid Bearer token
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+
+/**
+ * @swagger
  * /users/search:
  *   get:
  *     summary: Search users by name
@@ -370,7 +431,7 @@ import { CompanyService } from '../services/CompanyService';
 
 /**
  * @swagger
- * /users/{userId}/companies:
+ * /users/{id}/companies:
  *   get:
  *     summary: Get companies for a user
  *     description: Returns all companies the user has a membership of
@@ -380,7 +441,7 @@ import { CompanyService } from '../services/CompanyService';
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: userId
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
@@ -449,11 +510,11 @@ export class UserController {
   }
 
   @Authenticated()
-  @Get('/:userId/companies')
+  @Get('/:id/companies')
   async getUserCompanies(req: Request, res: Response): Promise<void> {
     try {
-      const { userId } = req.params;
-      const user = await this.userService.getUserById(userId);
+      const { id } = req.params;
+      const user = await this.userService.getUserById(id);
 
       if (!user) {
         res.status(404).json({
@@ -543,6 +604,54 @@ export class UserController {
       res.json({
         success: true,
         data: user,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
+
+  @Authenticated()
+  @Patch('/:id/membership')
+  async patchUser(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { companyId, role, status } = req.body ?? {};
+
+      if (!companyId) {
+        res.status(400).json({
+          success: false,
+          message: 'companyId is required',
+        });
+        return;
+      }
+
+      if (role === undefined && status === undefined) {
+        res.status(400).json({
+          success: false,
+          message: 'At least one of role or status is required',
+        });
+        return;
+      }
+
+      const user = await this.userService.editMembership(id, companyId, { role, status });
+
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          message: 'User not found',
+        });
+        return;
+      }
+
+      const userResponse = user.toObject();
+      delete userResponse.password;
+
+      res.json({
+        success: true,
+        data: userResponse,
       });
     } catch (error) {
       res.status(400).json({

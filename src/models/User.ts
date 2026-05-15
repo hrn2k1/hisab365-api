@@ -117,6 +117,13 @@ const userSchema = new Schema<IUser>(
                 return ret;
             },
         },
+        toObject: {
+            transform: function (doc, ret) {
+                ret.id = ret._id;
+                delete ret._id;
+                return ret;
+            },
+        },
     }
 );
 

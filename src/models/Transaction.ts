@@ -138,10 +138,17 @@ const transactionSchema = new Schema<ITransaction>(
                 return ret;
             },
         },
+        toObject: {
+            transform: function (doc, ret) {
+                ret.id = ret._id;
+                delete ret._id;
+                return ret;
+            },
+        },
     }
 );
 
 export default (companyId: string) => {
-  const companyDb = getCompanyConnection(companyId);
-  return companyDb.model<ITransaction>('Transaction', transactionSchema);
+    const companyDb = getCompanyConnection(companyId);
+    return companyDb.model<ITransaction>('Transaction', transactionSchema);
 };
