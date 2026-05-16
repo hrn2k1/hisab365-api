@@ -227,10 +227,43 @@ export class UserService {
   }
 
   /**
-   * Search users by name
+   * Search users by name, email, or contact number (OR logic)
+   * Returns users and matched criteria string
    */
-  async searchUsers(name: string): Promise<IUser[]> {
-    return User.find({ name: { $regex: name, $options: 'i' } });
+  async searchUsers(name?: string, email?: string, contactNumber?: string): Promise<IUser[] | any[]> {
+    // Helper to escape regex special characters
+    function escapeRegex(str: string) {
+      return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    const or: any[] = [];
+    if (name) {
+      or.push({ name: { $regex: escapeRegex(name), $options: 'i' } });
+    }
+    if (email) {
+      or.push({ email: { $regex: escapeRegex(email), $options: 'i' } });
+    }
+    if (contactNumber) {
+      or.push({ contactNumber: { $regex: escapeRegex(contactNumber), $options: 'i' } });
+    }
+    const query = or.length > 0 ? { $or: or } : {};
+    const users = await User.find(query);
+
+    const usersWithCriteria = users.map(user => {
+      let matchedCriteria = '';
+      if (email && user.email?.toLowerCase() === email.toLowerCase() && contactNumber && user.contactNumber?.toLowerCase() === contactNumber.toLowerCase()) {
+        matchedCriteria = 'email, contactNumber';
+      } else if (email && user.email?.toLowerCase() === email.toLowerCase()) {
+        matchedCriteria = 'email';
+      } else if (contactNumber && user.contactNumber?.toLowerCase() === contactNumber.toLowerCase()) {
+        matchedCriteria = 'contactNumber';
+      } else if (name && user.name?.toLowerCase().includes(name.toLowerCase())) {
+        matchedCriteria = 'name';
+      }
+      return { ...user.toObject(), password: undefined, matchedCriteria };
+    });
+
+    return usersWithCriteria;
   }
 
   /**

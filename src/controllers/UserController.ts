@@ -393,21 +393,32 @@ import { CompanyService } from '../services/CompanyService';
 /**
  * @swagger
  * /users/search:
- *   get:
- *     summary: Search users by name
- *     description: Search for users using a name query
+ *   post:
+ *     summary: Search users by name, email, or contact number
+ *     description: Search for users using any combination of name, email, or contact number. Returns matched users and the criteria used.
  *     tags:
  *       - Users
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: q
- *         required: true
- *         schema:
- *           type: string
- *         description: Search query
- *         example: "John"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Name to search for
+ *                 example: "John"
+ *               email:
+ *                 type: string
+ *                 description: Email to search for
+ *                 example: "john@example.com"
+ *               contactNumber:
+ *                 type: string
+ *                 description: Contact number to search for
+ *                 example: "+880123456789"
  *     responses:
  *       200:
  *         description: Search results
@@ -416,9 +427,19 @@ import { CompanyService } from '../services/CompanyService';
  *             example:
  *               success: true
  *               data:
- *                 - id: "6a61aded-906a-4801-8543-d1d5ca9e0193"
- *                   name: "John Doe"
- *                   email: "john@example.com"
+ *                 users:
+ *                   - id: "6a61aded-906a-4801-8543-d1d5ca9e0193"
+ *                     name: "John Doe"
+ *                     email: "john@example.com"
+ *                     contactNumber: "+880123456789"
+ *                 criteria: "matched with name or email"
+ *       400:
+ *         description: Bad request - No search criteria provided
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               message: "At least one search criteria (name, email, or contactNumber) is required"
  *       401:
  *         description: Unauthorized - Missing or invalid Bearer token
  */
@@ -602,6 +623,55 @@ import { CompanyService } from '../services/CompanyService';
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
+
+/**
+ * @swagger
+ * /users/{id}/reset-password:
+ *   post:
+ *     summary: Reset user password
+ *     description: Reset the password for a user by their ID
+ *     operationId: resetUserPassword
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 description: New password for the user
+ *           example:
+ *             password: "NewPass@123"
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Password reset successfully
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         description: Unauthorized - Missing or invalid Bearer token
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+
 @Controller('/users')
 export class UserController {
   private userService: UserService;
@@ -842,20 +912,20 @@ export class UserController {
   }
 
   @Authenticated()
-  @Get('/search')
+  @Post('/search')
   async searchUsers(req: Request, res: Response): Promise<void> {
     try {
-      const { q } = req.query;
+      const { name, email, contactNumber } = req.body ?? {};
 
-      if (!q || typeof q !== 'string') {
+      if (!name && !email && !contactNumber) {
         res.status(400).json({
           success: false,
-          message: 'Search query is required',
+          message: 'At least one search criteria (name, email, or contactNumber) is required',
         });
         return;
       }
 
-      const users = await this.userService.searchUsers(q);
+      const users = await this.userService.searchUsers(name, email, contactNumber);
 
       res.json({
         success: true,
@@ -978,4 +1048,29 @@ export class UserController {
     }
   }
 
+  @Authenticated()
+  @Post('/:id/reset-password')
+  async resetUserPassword(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { password } = req.body ?? {};
+      // Only superadmin can reset password
+      if (req.user?.type !== 'superadmin') {
+        res.status(403).json({ success: false, message: 'Only superadmin can reset passwords' });
+        return;
+      }
+      if (!password) {
+        res.status(400).json({ success: false, message: 'password is required' });
+        return;
+      }
+      const user = await this.userService.setUser(id, { password });
+      if (!user) {
+        res.status(404).json({ success: false, message: 'User not found' });
+        return;
+      }
+      res.json({ success: true, message: 'Password reset successfully' });
+    } catch (error) {
+      res.status(400).json({ success: false, message: error instanceof Error ? error.message : 'An error occurred' });
+    }
+  }
 }
