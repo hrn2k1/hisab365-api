@@ -228,6 +228,81 @@ import { CompanyService } from '../services/CompanyService';
  *         description: User updated successfully
  *       401:
  *         description: Unauthorized - Missing or invalid Bearer token
+ *   patch:
+ *     summary: Partially update user
+ *     description: Partially update user fields
+ *     operationId: patchUser
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               contactNumber:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *               photo:
+ *                 type: string
+ *               divisionId:
+ *                 type: number
+ *               districtId:
+ *                 type: number
+ *               thanaId:
+ *                 type: number
+ *               props:
+ *                 type: object
+ *           example:
+ *             name: "Jane Doe"
+ *             email: "jane.doe@example.com"
+ *             contactNumber: "+880987654321"
+ *             type: "user"
+ *             photo: "https://example.com/photos/jane_doe.jpg"
+ *             divisionId: 2
+ *             districtId: 3
+ *             thanaId: 4
+ *             props:
+ *               address: "New Address, Dhaka"
+ *     responses:
+ *       200:
+ *         description: User updated successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 id: "6a61aded-906a-4801-8543-d1d5ca9e0193"
+ *                 name: "Jane Doe"
+ *                 email: "jane.doe@example.com"
+ *                 contactNumber: "+880987654321"
+ *                 type: "user"
+ *                 photo: "https://example.com/photos/jane_doe.jpg"
+ *                 divisionId: 2
+ *                 districtId: 3
+ *                 thanaId: 4
+ *                 props:
+ *                   address: "New Address, Dhaka"
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         description: Unauthorized - Missing or invalid Bearer token
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
  *   delete:
  *     summary: Delete user
  *     description: Remove a user from the system
@@ -253,7 +328,8 @@ import { CompanyService } from '../services/CompanyService';
  * /users/{id}/membership:
  *   patch:
  *     summary: Partially update user membership
- *     description: Update a user's membership role and/or status for a specific company
+ *     description: Update a user's membership role, status, and/or type for a specific company
+ *     operationId: patchUserMembership
  *     tags:
  *       - Users
  *     security:
@@ -283,10 +359,14 @@ import { CompanyService } from '../services/CompanyService';
  *               status:
  *                 type: string
  *                 enum: [active, pending, rejected, inactive]
+ *               membershipType:
+ *                 type: string
+ *                 description: Type of membership (e.g., owner, member, guest)
  *           example:
  *             companyId: "12345678-90ab-cdef-1234-567890abcdef"
  *             role: "admin"
  *             status: "active"
+ *             membershipType: "owner"
  *     responses:
  *       200:
  *         description: User membership updated successfully
@@ -301,6 +381,7 @@ import { CompanyService } from '../services/CompanyService';
  *                   - companyId: "12345678-90ab-cdef-1234-567890abcdef"
  *                     role: "admin"
  *                     status: "active"
+ *                     membershipType: "owner"
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:
@@ -472,6 +553,55 @@ import { CompanyService } from '../services/CompanyService';
  *         $ref: '#/components/responses/ServerError'
  */
 
+/**
+ * @swagger
+ * /users/{id}/membership:
+ *   delete:
+ *     summary: Remove a user's membership for a company
+ *     description: Remove a membership from a user for a specific company
+ *     operationId: removeMembership
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - companyId
+ *             properties:
+ *               companyId:
+ *                 type: string
+ *                 description: Company ID to remove from memberships
+ *           example:
+ *             companyId: "12345678-90ab-cdef-1234-567890abcdef"
+ *     responses:
+ *       200:
+ *         description: Membership removed successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 id: "6a61aded-906a-4801-8543-d1d5ca9e0193"
+ *                 memberships: []
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         description: Unauthorized - Missing or invalid Bearer token
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
 @Controller('/users')
 export class UserController {
   private userService: UserService;
@@ -615,10 +745,10 @@ export class UserController {
 
   @Authenticated()
   @Patch('/:id/membership')
-  async patchUser(req: Request, res: Response): Promise<void> {
+  async patchUserMembership(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const { companyId, role, status } = req.body ?? {};
+      const { companyId, role, status, membershipType } = req.body ?? {};
 
       if (!companyId) {
         res.status(400).json({
@@ -628,15 +758,15 @@ export class UserController {
         return;
       }
 
-      if (role === undefined && status === undefined) {
+      if (role === undefined && status === undefined && membershipType === undefined) {
         res.status(400).json({
           success: false,
-          message: 'At least one of role or status is required',
+          message: 'At least one of role, status, or membershipType is required',
         });
         return;
       }
 
-      const user = await this.userService.editMembership(id, companyId, { role, status });
+      const user = await this.userService.addOrEditMembership(id, companyId, { role, status, membershipType });
 
       if (!user) {
         res.status(404).json({
@@ -658,6 +788,28 @@ export class UserController {
         success: false,
         message: error instanceof Error ? error.message : 'An error occurred',
       });
+    }
+  }
+
+
+  @Authenticated()
+  @Delete('/:id/membership')
+  async removeUserMembership(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { companyId } = req.body ?? {};
+      if (!companyId) {
+        res.status(400).json({ success: false, message: 'companyId is required' });
+        return;
+      }
+      const user = await this.userService.removeMembership(id, companyId);
+      if (!user) {
+        res.status(404).json({ success: false, message: 'User not found' });
+        return;
+      }
+      res.json({ success: true, data: user });
+    } catch (error) {
+      res.status(400).json({ success: false, message: error instanceof Error ? error.message : 'An error occurred' });
     }
   }
 
@@ -750,4 +902,80 @@ export class UserController {
       });
     }
   }
+
+  @Authenticated()
+  @Patch('/:id')
+  async patchUser(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { name, email, contactNumber, type, photo, divisionId, districtId, thanaId, props } = req.body ?? {};
+
+      if (name === undefined && email === undefined && contactNumber === undefined && type === undefined && photo === undefined && divisionId === undefined && districtId === undefined && thanaId === undefined && props === undefined) {
+        res.status(400).json({
+          success: false,
+          message: 'At least one of name, email, contactNumber, type, photo, divisionId, districtId, thanaId, or props is required',
+        });
+        return;
+      }
+
+      const updateData: Record<string, unknown> = {};
+
+      if (name !== undefined) {
+        updateData.name = name;
+      }
+
+      if (email !== undefined) {
+        updateData.email = email;
+      }
+
+      if (contactNumber !== undefined) {
+        updateData.contactNumber = contactNumber;
+      }
+
+      if (type !== undefined) {
+        updateData.type = type;
+      }
+
+      if (photo !== undefined) {
+        updateData.photo = photo;
+      }
+
+      if (divisionId !== undefined) {
+        updateData.divisionId = divisionId;
+      }
+
+      if (districtId !== undefined) {
+        updateData.districtId = districtId;
+      }
+
+      if (thanaId !== undefined) {
+        updateData.thanaId = thanaId;
+      }
+
+      if (props !== undefined) {
+        updateData.props = props;
+      }
+
+      const user = await this.userService.setUser(id, updateData);
+
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          message: 'User not found',
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: user,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
+
 }

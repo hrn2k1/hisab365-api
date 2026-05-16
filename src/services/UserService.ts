@@ -80,6 +80,21 @@ export class UserService {
   }
 
   /**
+     * Partially update user fields using $set
+     */
+  async setUser(id: string, userData: Record<string, unknown>): Promise<IUser | null> {
+    const fieldsToSet = Object.fromEntries(
+      Object.entries(userData).filter(([, value]) => value !== undefined)
+    );
+
+    return User.findByIdAndUpdate(
+      id,
+      { $set: fieldsToSet },
+      { new: true, runValidators: true }
+    );
+  }
+
+  /**
    * Push a membership object into the user's memberships array
    */
   async addMembership(id: string, membership: IMembership): Promise<IUser | null> {
@@ -128,16 +143,64 @@ export class UserService {
   }
 
   /**
-   * Set specific user fields without replacing the whole document
-   */
-  async setUser(id: string, userData: Partial<IUser>): Promise<IUser | null> {
-    const fieldsToSet = Object.fromEntries(
-      Object.entries(userData).filter(([, value]) => value !== undefined)
-    );
-
+ * Remove a membership from a user by companyId
+ */
+  async removeMembership(id: string, companyId: string): Promise<IUser | null> {
     return User.findByIdAndUpdate(
       id,
-      { $set: fieldsToSet },
+      { $pull: { memberships: { companyId } } },
+      { new: true, runValidators: true }
+    );
+  }
+  /**
+   * Add or edit a membership by companyId. If membership exists, update it; otherwise, add new membership.
+   */
+  async addOrEditMembership(
+    id: string,
+    companyId: string,
+    membershipData: Partial<IMembership>
+  ): Promise<IUser | null> {
+    // Try to update existing membership using positional $ operator
+    const updateFields: Record<string, any> = {};
+    if (membershipData.membershipType !== undefined) {
+      updateFields['memberships.$.membershipType'] = membershipData.membershipType;
+    }
+    if (membershipData.role !== undefined) {
+      updateFields['memberships.$.role'] = membershipData.role;
+    }
+    if (membershipData.joinedAt !== undefined) {
+      updateFields['memberships.$.joinedAt'] = membershipData.joinedAt;
+    }
+    if (membershipData.status !== undefined) {
+      updateFields['memberships.$.status'] = membershipData.status;
+      updateFields['memberships.$.statusDate'] = membershipData.statusDate ?? new Date();
+    } else if (membershipData.statusDate !== undefined) {
+      updateFields['memberships.$.statusDate'] = membershipData.statusDate;
+    }
+
+    // Try update first
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: id, 'memberships.companyId': companyId },
+      Object.keys(updateFields).length > 0 ? { $set: updateFields } : {},
+      { new: true, runValidators: true }
+    );
+    if (updatedUser) {
+      return updatedUser;
+    }
+
+    // If not found, add new membership
+    const newMembership: IMembership = {
+      companyId,
+      role: membershipData.role ?? 'user',
+      status: membershipData.status ?? 'active',
+      membershipType: membershipData.membershipType,
+      joinedAt: membershipData.joinedAt ?? new Date(),
+      statusDate: membershipData.statusDate ?? new Date(),
+      // Add any other fields from IMembership as needed
+    } as IMembership;
+    return User.findByIdAndUpdate(
+      id,
+      { $push: { memberships: newMembership } },
       { new: true, runValidators: true }
     );
   }

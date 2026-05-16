@@ -97,6 +97,7 @@ const userSchema = new Schema<IUser>(
         memberships: [
             {
                 companyId: { type: String, required: true },
+                membershipType: { type: String, enum: ['general', 'member', 'customer', 'supplier'], required: true },
                 role: { type: String, enum: ['user', 'admin'], required: true },
                 joinedAt: { type: Date, default: null },
                 status: { type: String, enum: ['active', 'pending', 'rejected', 'inactive'], required: true, default: 'pending' },
