@@ -68,11 +68,6 @@ const options = {
               description: 'User type',
               example: 'user',
             },
-            companyId: {
-              type: 'string',
-              description: 'Company ID',
-              example: '12345678-90ab-cdef-1234-567890abcdef',
-            },
             gender: {
               type: 'string',
               description: 'User gender',
@@ -89,6 +84,50 @@ const options = {
             thanaId: {
               type: 'number',
               description: 'Thana ID',
+            },
+            photo: {
+              type: 'string',
+              description: 'Photo URL',
+              example: 'https://www.example.com/photo.jpg',
+            },
+            memberships: {
+              type: 'array',
+              description: 'User memberships in companies',
+              items: {
+                type: 'object',
+                properties: {
+                  companyId: {
+                    type: 'string',
+                    description: 'Company ID',
+                    example: '12345678-90ab-cdef-1234-567890abcdef',
+                  },
+                  membershipType: {
+                    type: 'string',
+                    description: 'Membership type',
+                    example: 'member',
+                  },
+                  role: {
+                    type: 'string',
+                    description: 'User role in the company',
+                    example: 'admin',
+                  },
+                  status: {
+                    type: 'string',
+                    description: 'Membership status',
+                    example: 'active',
+                  },
+                  joinedAt: {
+                    type: 'string',
+                    format: 'date-time',
+                    description: 'Membership join date',
+                  },
+                  statusDate: {
+                    type: 'string',
+                    format: 'date-time',
+                    description: 'Membership status date',
+                  },
+                },
+              }
             },
             props: {
               type: 'object',
@@ -160,7 +199,7 @@ const options = {
           type: 'object',
           required: ['name', 'type'],
           properties: {
-            _id: {
+            id: {
               type: 'string',
               description: 'Account ID (UUID)',
               example: '3ae8a0e0-b345-437b-b0ee-591d5eb8ca4f',
@@ -168,12 +207,18 @@ const options = {
             name: {
               type: 'string',
               description: 'Account name',
-              example: 'Harun Or Rashid',
+              example: 'IBBL-59335',
             },
             openingBalance: {
               type: 'number',
               description: 'Opening balance',
               example: 0,
+            },
+            openingBalanceDate: {
+              type: 'string',
+              format: 'date',
+              description: 'Opening balance date',
+              example: '2023-01-01',
             },
             currentBalance: {
               type: 'number',
@@ -186,10 +231,15 @@ const options = {
               description: 'Account type',
               example: 'Customer',
             },
+            remarks: {
+              type: 'string',
+              description: 'Account remarks',
+              example: 'This is a remark',
+            },
             props: {
               type: 'object',
               description: 'Additional properties (flexible)',
-              example: { membershipType: 'member' },
+              example: { bankName: 'IBBL', branchName: 'Main Branch' },
             },
             createdAt: {
               type: 'string',

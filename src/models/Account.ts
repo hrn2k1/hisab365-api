@@ -6,6 +6,7 @@ export interface IAccount extends Document {
   _id: string;
   name: string;
   openingBalance: number;
+  openingBalanceDate?: Date;
   currentBalance: number;
   remarks?: string;
   type: string;
@@ -29,6 +30,9 @@ const accountSchema = new Schema<IAccount>(
       type: Number,
       required: true,
       default: 0,
+    },
+    openingBalanceDate: {
+      type: Date,
     },
     currentBalance: {
       type: Number,

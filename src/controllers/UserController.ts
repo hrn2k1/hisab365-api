@@ -52,22 +52,6 @@ import { CompanyService } from '../services/CompanyService';
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/User'
- *             example:
- *               success: true
- *               data:
- *                 - id: "6a61aded-906a-4801-8543-d1d5ca9e0193"
- *                   name: "John Doe"
- *                   contactNumber: "+880123456789"
- *                   email: "john.doe@example.com"
- *                   type: "user"
- *                   gender: "Male"
- *                   divisionId: 1
- *                   districtId: 1
- *                   props:
- *                     address: "Sheikhpara, Joypurhat"
- *                     bloodGroup: "A+"
- *                   createdAt: "2024-06-01T00:00:00Z"
- *                   updatedAt: "2024-06-01T00:00:00Z"
  *       401:
  *         description: Unauthorized - Missing or invalid Bearer token
  *       500:
@@ -122,20 +106,6 @@ import { CompanyService } from '../services/CompanyService';
  *                 type: number
  *               props:
  *                 type: object
- *           example:
- *             name: "John Doe"
- *             contactNumber: "+880123456789"
- *             email: "john.doe@example.com"
- *             password: "Pass@123"
- *             type: "user"
- *             gender: "Male"
- *             divisionId: 1
- *             districtId: 1
- *             props:
- *               address: "Sheikhpara, Joypurhat"
- *               photo: "https://example.com/photos/john_doe.jpg"
- *               birthDate: "1985-01-01"
- *               bloodGroup: "A+"
  *     responses:
  *       201:
  *         description: User created successfully
@@ -148,19 +118,6 @@ import { CompanyService } from '../services/CompanyService';
  *                   type: boolean
  *                 data:
  *                   $ref: '#/components/schemas/User'
- *             example:
- *               success: true
- *               data:
- *                 id: "6a61aded-906a-4801-8543-d1d5ca9e0193"
- *                 name: "John Doe"
- *                 contactNumber: "+880123456789"
- *                 email: "john.doe@example.com"
- *                 type: "user"
- *                 gender: "Male"
- *                 divisionId: 1
- *                 districtId: 1
- *                 props:
- *                   address: "Sheikhpara, Joypurhat"
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:
@@ -189,14 +146,8 @@ import { CompanyService } from '../services/CompanyService';
  *         description: User retrieved successfully
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 id: "6a61aded-906a-4801-8543-d1d5ca9e0193"
- *                 name: "John Doe"
- *                 contactNumber: "+880123456789"
- *                 email: "john.doe@example.com"
- *                 type: "user"
+ *             schema:
+ *               $ref: '#/components/schemas/User'
  *       401:
  *         description: Unauthorized - Missing or invalid Bearer token
  *       404:

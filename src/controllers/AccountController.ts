@@ -81,12 +81,16 @@ import { randomUUID } from 'crypto';
  *               openingBalance:
  *                 type: number
  *                 example: 10000
- *               currentBalance:
- *                 type: number
- *                 example: 10000
+ *               openingBalanceDate:
+ *                 type: string
+ *                 format: date
+ *                 example: "2023-01-01"
+ *               remarks:
+ *                 type: string
+ *                 example: "This is a remark"
  *               props:
  *                 type: object
- *                 example: { "bankName": "IBBL", "accountNumber": "123456" }
+ *                 example: { "bankName": "IBBL", "branchName": "Main Branch" }
  *     responses:
  *       201:
  *         description: Account created successfully
@@ -126,8 +130,11 @@ import { randomUUID } from 'crypto';
  *                 type: string
  *               openingBalance:
  *                 type: number
- *               currentBalance:
- *                 type: number
+ *               openingBalanceDate:
+ *                 type: string
+ *                 format: date
+ *               remarks:
+ *                 type: string
  *               props:
  *                 type: object
  *     responses:
@@ -197,7 +204,7 @@ export class AccountController {
   @Post()
   @Authenticated()
   async createAccount(req: Request, res: Response): Promise<void> {
-    const { name, type, openingBalance, currentBalance, props } = req.body;
+    const { name, type, openingBalance, openingBalanceDate, remarks, props } = req.body;
 
     if (!name || !type) {
       res.status(400).json({ success: false, message: 'Name and type are required' });
@@ -208,7 +215,9 @@ export class AccountController {
       name,
       type,
       openingBalance: openingBalance || 0,
-      currentBalance: currentBalance || 0,
+      openingBalanceDate: openingBalanceDate || new Date(),
+      currentBalance: openingBalance || 0,
+      remarks: remarks || '',
       props: props || {},
     });
 
