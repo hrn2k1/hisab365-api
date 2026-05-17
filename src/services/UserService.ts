@@ -1,3 +1,4 @@
+import e from 'express';
 import { User, IUser, IMembership } from '../models/User';
 
 export class UserService {
@@ -51,6 +52,60 @@ export class UserService {
    */
   async getUsersByCompanyId(companyId: string): Promise<IUser[]> {
     return User.find({ 'memberships.companyId': companyId });
+  }
+
+  async addUserToCompany(companyId: string, userData: Partial<IUser>, membershipData: Partial<IMembership>): Promise<IUser | null> {
+    // 1. Check if user exists by email or contactNumber
+    let user: IUser | null = null;
+    if (userData.email || userData.contactNumber) {
+      user = await this.getUserByEmailOrContact(userData.email ?? '', userData.contactNumber ?? '');
+    }
+
+    // 2. If user does not exist, create user
+    if (!user) {
+      user = await this.createUser(userData);
+    }
+
+    if (!user) {
+      // Could not create or find user
+      return null;
+    }
+
+    // 3. Check if membership for this company already exists
+    const existingMembership = user.memberships?.find(m => m.companyId === companyId);
+
+    if (existingMembership) {
+      // 4. If membership exists, update it
+      await this.editMembership(user._id.toString(), companyId, membershipData);
+    } else {
+      // 5. If not, add new membership
+      const newMembership: IMembership = {
+        companyId,
+        role: membershipData.role ?? 'user',
+        status: membershipData.status ?? 'active',
+        membershipType: membershipData.membershipType ?? 'general',
+        joinedAt: membershipData.joinedAt ?? new Date(),
+        statusDate: membershipData.statusDate ?? new Date()
+      } as IMembership;
+      await this.addMembership(user._id.toString(), newMembership);
+    }
+
+    // 6. Return the updated user
+    return this.getUserById(user._id.toString());
+  }
+
+  /**
+   * Remove a user's membership for a specific company
+  */
+  async removeUserFromCompany(userId: string, companyId: string): Promise<IUser | null> {
+    // Check if user has membership with the company
+    const user = await this.getUserById(userId);
+    if (!user || !user.memberships?.some(m => m.companyId === companyId)) {
+      // User not found or no such membership
+      return user;
+    }
+    // Remove the membership
+    return this.removeMembership(userId, companyId);
   }
 
   /**

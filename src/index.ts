@@ -16,6 +16,7 @@ import { TransactionController } from './controllers/TransactionController';
 import { CompanyController } from './controllers/CompanyController';
 import { MiscController } from './controllers/MiscController';
 import { StorageController } from './controllers/StorageController';
+import { CustomFieldController } from './controllers/CustomFieldController';
 
 class App {
   public app: Express;
@@ -98,7 +99,18 @@ class App {
     const apiRouter = express.Router();
 
     // Register decorated controllers
-    registerControllers(apiRouter, [MiscController, StorageController, AuthController, UserController, ProfileController, LocationController, AccountController, TransactionController, CompanyController]);
+    registerControllers(apiRouter, [
+      MiscController,
+      StorageController,
+      AuthController,
+      UserController,
+      ProfileController,
+      LocationController,
+      AccountController,
+      TransactionController,
+      CompanyController,
+      CustomFieldController
+    ]);
 
     // Mount API router
     this.app.use(Config.API_PREFIX, apiRouter);

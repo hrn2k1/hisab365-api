@@ -16,6 +16,7 @@ import { AccountController } from '../src/controllers/AccountController';
 import { TransactionController } from '../src/controllers/TransactionController';
 import { MiscController } from '../src/controllers/MiscController';
 import { StorageController } from '../src/controllers/StorageController';
+import { CustomFieldController } from '../src/controllers/CustomFieldController';
 
 // Create Express app
 const app: Express = express();
@@ -91,7 +92,7 @@ app.get('/api-docs', swaggerUi.setup(swaggerSpec, swaggerUiOptions));
 
 // API routes
 const apiRouter = express.Router();
-registerControllers(apiRouter, [CompanyController, MiscController, AuthController, UserController, ProfileController, LocationController, AccountController, TransactionController, StorageController]);
+registerControllers(apiRouter, [CompanyController, MiscController, AuthController, UserController, ProfileController, LocationController, AccountController, TransactionController, StorageController, CustomFieldController]);
 app.use(Config.API_PREFIX, apiRouter);
 
 // Database connection state

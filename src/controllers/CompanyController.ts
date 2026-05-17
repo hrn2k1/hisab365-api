@@ -401,6 +401,117 @@ import { UserService } from '../services/UserService';
  *         $ref: '#/components/responses/ServerError'
  */
 
+/**
+ * @swagger
+ * /companies/{id}/users:
+ *   post:
+ *     summary: Add user to company
+ *     description: Add a user to the specified company. Creates the user if not already present, and adds or updates their membership.
+ *     tags:
+ *       - Companies
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Company ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               contactNumber:
+ *                 type: string
+ *               membershipType:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *           example:
+ *             name: "John Doe"
+ *             email: "john@example.com"
+ *             contactNumber: "0123456789"
+ *             membershipType: "admin"
+ *             role: "manager"
+ *             status: "active"
+ *     responses:
+ *       200:
+ *         description: User added or updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized - Missing or invalid Bearer token
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
+
+/**
+ * @swagger
+ * /companies/{id}/users:
+ *   delete:
+ *     summary: Remove user from company
+ *     description: Remove a user's membership from the specified company.
+ *     tags:
+ *       - Companies
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Company ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *           example:
+ *             userId: "1234567890abcdef"
+ *     responses:
+ *       200:
+ *         description: User removed from company successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized - Missing or invalid Bearer token
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
+
 @Controller('/companies')
 export class CompanyController {
   private companyService: CompanyService;
@@ -420,31 +531,6 @@ export class CompanyController {
       res.json({
         success: true,
         data: companies,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: error instanceof Error ? error.message : 'An error occurred',
-      });
-    }
-  }
-
-  @Authenticated()
-  @Get('/:id/users')
-  async getCompanyUsers(req: Request, res: Response): Promise<void> {
-    try {
-      const { id } = req.params;
-      const users = await this.userService.getUsersByCompanyId(id);
-
-      const usersResponse = users.map((user) => {
-        const userResponse = user.toObject();
-        delete userResponse.password;
-        return userResponse;
-      });
-
-      res.json({
-        success: true,
-        data: usersResponse,
       });
     } catch (error) {
       res.status(500).json({
@@ -645,6 +731,78 @@ export class CompanyController {
       res.json({
         success: true,
         data: companies,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
+
+  @Authenticated()
+  @Get('/:id/users')
+  async getCompanyUsers(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const users = await this.userService.getUsersByCompanyId(id);
+
+      const usersResponse = users.map((user) => {
+        const userResponse = user.toObject();
+        delete userResponse.password;
+        return userResponse;
+      });
+
+      res.json({
+        success: true,
+        data: usersResponse,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
+
+  @Authenticated()
+  @Post('/:id/users')
+  async addCompanyUser(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { name, email, contactNumber, membershipType, role, status } = req.body;
+      const user = await this.userService.addUserToCompany(
+        id,
+        { name, email, contactNumber },
+        { membershipType, role, status }
+      );
+
+      res.json({
+        success: true,
+        data: user?.toObject(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
+
+  @Authenticated()
+  @Delete('/:id/users')
+  async removeCompanyUser(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { userId } = req.body;
+      const user = await this.userService.removeUserFromCompany(
+        id,
+        userId
+      );
+
+      res.json({
+        success: true,
+        data: user?.toObject(),
       });
     } catch (error) {
       res.status(500).json({

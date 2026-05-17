@@ -115,6 +115,7 @@ const userSchema = new Schema<IUser>(
             transform: function (doc, ret) {
                 ret.id = ret._id;
                 delete ret._id;
+                delete ret.password; // Remove password from output
                 return ret;
             },
         },
@@ -122,6 +123,7 @@ const userSchema = new Schema<IUser>(
             transform: function (doc, ret) {
                 ret.id = ret._id;
                 delete ret._id;
+                delete ret.password; // Remove password from output
                 return ret;
             },
         },

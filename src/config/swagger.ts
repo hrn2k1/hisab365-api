@@ -33,6 +33,50 @@ const options = {
         },
       },
       schemas: {
+        CustomField: {
+          type: 'object',
+          required: ['id', 'name', 'type', 'entity'],
+          properties: {
+            id: {
+              type: 'string',
+              description: 'Custom field ID',
+              example: 'field-123',
+            },
+            name: {
+              type: 'string',
+              description: 'Field name (unique key)',
+              example: 'customField1',
+            },
+            label: {
+              type: 'string',
+              description: 'Field label (display name)',
+              example: 'Custom Field 1',
+            },
+            type: {
+              type: 'string',
+              enum: ['text', 'number', 'checkbox', 'date', 'select'],
+              description: 'Field type',
+              example: 'text',
+            },
+            options: {
+              type: 'array',
+              description: 'Options for select/checkbox fields',
+              items: { type: 'string' },
+              example: ['Option 1', 'Option 2'],
+            },
+            entity: {
+              type: 'string',
+              enum: ['User', 'Account', 'Transaction'],
+              description: 'Entity type this field belongs to',
+              example: 'User',
+            },
+            companyId: {
+              type: 'string',
+              description: 'Company ID (if field is company-specific)',
+              example: 'company-123',
+            },
+          },
+        },
         User: {
           type: 'object',
           required: ['id', 'name', 'contactNumber', 'email', 'password', 'type', 'companyId', 'gender', 'divisionId', 'districtId'],
