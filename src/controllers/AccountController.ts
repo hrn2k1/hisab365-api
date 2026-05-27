@@ -228,13 +228,21 @@ export class AccountController {
   @Authenticated()
   async updateAccount(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
-    const { name, type, openingBalance, currentBalance, props } = req.body;
+    const { name, type, openingBalance, openingBalanceDate, remarks, props } = req.body;
+    let account = await new AccountService(req.user?.loggedInCompanyId!).getAccountById(id);
 
-    const account = await new AccountService(req.user?.loggedInCompanyId!).updateAccount(id, {
+    if (!account) {
+      res.status(404).json({ success: false, message: 'Account not found' });
+      return;
+    }
+    const currentBalance = (account.currentBalance || 0) + ((openingBalance || 0) - (account.openingBalance || 0));
+    account = await new AccountService(req.user?.loggedInCompanyId!).updateAccount(id, {
       name,
       type,
       openingBalance,
+      openingBalanceDate,
       currentBalance,
+      remarks,
       props,
     });
 
