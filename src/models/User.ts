@@ -1,6 +1,6 @@
 import { Schema, model, Document } from 'mongoose';
 import { randomUUID } from 'crypto';
-import * as bcrypt from 'bcrypt';
+import { comparePassword, hashPassword } from '../utils/passwordUtil';
 
 export interface IUserProps {
     address?: string;
@@ -139,8 +139,7 @@ userSchema.pre<IUser>('save', async function (next) {
 
     try {
         // Generate salt and hash password
-        const salt = await bcrypt.genSalt(10);
-        this.password = await bcrypt.hash(this.password, salt);
+        this.password = await hashPassword(this.password);
         next();
     } catch (error) {
         next(error as any);
@@ -149,7 +148,7 @@ userSchema.pre<IUser>('save', async function (next) {
 
 // Method to compare password with hashed password
 userSchema.methods.comparePassword = async function (password: string): Promise<boolean> {
-    return bcrypt.compare(password, this.password);
+    return comparePassword(password, this.password);
 };
 
 export const User = model<IUser>('User', userSchema);

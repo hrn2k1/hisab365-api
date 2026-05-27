@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Controller, Get, Post, Put, Patch, Delete, Authenticated } from '../decorators';
 import { UserService } from '../services/UserService';
 import { CompanyService } from '../services/CompanyService';
+import { hashPassword } from '../utils/passwordUtil';
 
 /**
  * @swagger
@@ -1014,7 +1015,8 @@ export class UserController {
         res.status(400).json({ success: false, message: 'password is required' });
         return;
       }
-      const user = await this.userService.setUser(id, { password });
+      const hashedPassword = await hashPassword(password);
+      const user = await this.userService.setUser(id, { password: hashedPassword });
       if (!user) {
         res.status(404).json({ success: false, message: 'User not found' });
         return;
