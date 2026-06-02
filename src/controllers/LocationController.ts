@@ -24,6 +24,11 @@ import { LocationService } from '../services/LocationService';
  *           type: string
  *           enum: [division, district, thana, area]
  *         description: Filter by location type
+ *       - in: query
+ *         name: parentId
+ *         schema:
+ *           type: number
+ *         description: Filter by parent location ID
  *     responses:
  *       200:
  *         description: Locations retrieved successfully
@@ -323,11 +328,13 @@ export class LocationController {
   @Get()
   async getAllLocations(req: Request, res: Response): Promise<void> {
     try {
-      const { type } = req.query;
+      const { type, parentId } = req.query;
 
       let locations;
       if (type) {
         locations = await this.locationService.getLocationsByType(type as any);
+      } else if (parentId) {
+        locations = await this.locationService.getChildLocations(Number(parentId));
       } else {
         locations = await this.locationService.getAllLocations();
       }
@@ -343,7 +350,34 @@ export class LocationController {
       });
     }
   }
+  
+  @Get('/search')
+  async searchLocations(req: Request, res: Response): Promise<void> {
+    try {
+      const { q } = req.query;
 
+      if (!q || typeof q !== 'string') {
+        res.status(400).json({
+          success: false,
+          message: 'Search query is required',
+        });
+        return;
+      }
+
+      const locations = await this.locationService.searchLocations(q);
+
+      res.json({
+        success: true,
+        data: locations,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
+  
   @Get('/divisions')
   async getDivisions(req: Request, res: Response): Promise<void> {
     try {
@@ -507,33 +541,6 @@ export class LocationController {
         success: true,
         message: 'Location deleted successfully',
         data: location,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: error instanceof Error ? error.message : 'An error occurred',
-      });
-    }
-  }
-
-  @Get('/search')
-  async searchLocations(req: Request, res: Response): Promise<void> {
-    try {
-      const { q } = req.query;
-
-      if (!q || typeof q !== 'string') {
-        res.status(400).json({
-          success: false,
-          message: 'Search query is required',
-        });
-        return;
-      }
-
-      const locations = await this.locationService.searchLocations(q);
-
-      res.json({
-        success: true,
-        data: locations,
       });
     } catch (error) {
       res.status(500).json({
