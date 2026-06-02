@@ -3,148 +3,92 @@ import { Location } from '../models/Location';
 import { Counter } from '../models/Counter';
 import Account from '../models/Account';
 import { connectDatabase, disconnectDatabase } from '../config/database';
+import fs from 'fs';
+import path from 'path';
 
-const BANGLADESH_LOCATION_DATA: Array<{ division: string; districts: string[] }> = [
-  {
-    division: 'Dhaka',
-    districts: [
-      'Dhaka',
-      'Faridpur',
-      'Gazipur',
-      'Gopalganj',
-      'Kishoreganj',
-      'Madaripur',
-      'Manikganj',
-      'Munshiganj',
-      'Narayanganj',
-      'Narsingdi',
-      'Rajbari',
-      'Shariatpur',
-      'Tangail',
-    ],
-  },
-  {
-    division: 'Khulna',
-    districts: [
-      'Bagerhat',
-      'Chuadanga',
-      'Jashore',
-      'Jhenaidah',
-      'Khulna',
-      'Kushtia',
-      'Magura',
-      'Meherpur',
-      'Narail',
-      'Satkhira',
-    ],
-  },
-  {
-    division: 'Chattogram',
-    districts: [
-      'Bandarban',
-      'Brahmanbaria',
-      'Chandpur',
-      'Chattogram',
-      'Comilla',
-      "Cox's Bazar",
-      'Feni',
-      'Khagrachhari',
-      'Lakshmipur',
-      'Noakhali',
-      'Rangamati Hill',
-    ],
-  },
-  {
-    division: 'Rajshahi',
-    districts: [
-      'Bogra',
-      'Joypurhat',
-      'Naogaon',
-      'Natore',
-      'Chapainawabganj',
-      'Pabna',
-      'Rajshahi',
-      'Sirajganj',
-    ],
-  },
-  {
-    division: 'Sylhet',
-    districts: ['Habiganj', 'Moulvibazar', 'Sunamganj', 'Sylhet'],
-  },
-  {
-    division: 'Rangpur',
-    districts: [
-      'Dinajpur',
-      'Gaibandha',
-      'Kurigram',
-      'Lalmonirhat',
-      'Nilphamari',
-      'Panchagarh',
-      'Rangpur',
-      'Thakurgaon',
-    ],
-  },
-  {
-    division: 'Mymensingh',
-    districts: ['Jamalpur', 'Mymensingh', 'Netrokona', 'Sherpur'],
-  },
-  {
-    division: 'Barisal',
-    districts: [
-      'Jhalakathi',
-      'Barguna',
-      'Barisal',
-      'Bhola',
-      'Patuakhali',
-      'Pirojpur',
-    ],
-  },
-];
+type ThanaSeed = {
+  name: string;
+};
+
+type DistrictSeed = {
+  name: string;
+  thanas: ThanaSeed[];
+};
+
+type DivisionSeed = {
+  name: string;
+  districts: DistrictSeed[];
+};
+
+function loadLocationsSeedData(): DivisionSeed[] {
+  const locationsJsonPath = path.resolve(process.cwd(), 'locations.json');
+
+  if (!fs.existsSync(locationsJsonPath)) {
+    throw new Error(`locations.json not found at ${locationsJsonPath}`);
+  }
+
+  const raw = fs.readFileSync(locationsJsonPath, 'utf8');
+  const parsed = JSON.parse(raw) as unknown;
+
+  if (!Array.isArray(parsed)) {
+    throw new Error('Invalid locations.json format: root value must be an array');
+  }
+
+  return parsed as DivisionSeed[];
+}
+
 
 async function seedBangladeshLocations() {
-  console.log('Seeding Bangladesh divisions and districts...');
+  console.log('Seeding Bangladesh divisions, districts and thanas from locations.json...');
 
-  console.log('Clearing existing division and district locations...');
-  await Location.deleteMany({ type: { $in: ['division', 'district'] } });
-  console.log('✓ Cleared existing division and district locations');
+  const seedData = loadLocationsSeedData();
 
-  const divisionIdMap: Record<string, number> = {};
+  console.log('Clearing existing division, district and thana locations...');
+  await Location.deleteMany({ type: { $in: ['division', 'district', 'thana'] } });
+  console.log('✓ Cleared existing division, district and thana locations');
 
-  for (const item of BANGLADESH_LOCATION_DATA) {
+  let divisionCount = 0;
+  let districtCount = 0;
+  let thanaCount = 0;
+
+  for (const item of seedData) {
     const division = await Location.create({
       type: 'division',
-      name: item.division,
+      name: item.name,
       parentId: null,
     });
 
-    divisionIdMap[item.division] = division._id as number;
-  }
-
-  for (const item of BANGLADESH_LOCATION_DATA) {
-    const parentId = divisionIdMap[item.division];
+    divisionCount += 1;
 
     for (const district of item.districts) {
-      await Location.create({
+      const districtLocation = await Location.create({
         type: 'district',
-        name: district,
-        parentId,
+        name: district.name,
+        parentId: division._id as number,
       });
+
+      districtCount += 1;
+
+      for (const thana of district.thanas) {
+      await Location.create({
+        type: 'thana',
+          name: thana.name,
+          parentId: districtLocation._id as number,
+      });
+
+        thanaCount += 1;
+      }
     }
   }
 
-  const divisionCount = Object.keys(divisionIdMap).length;
-  const districtCount = BANGLADESH_LOCATION_DATA.reduce(
-    (total, item) => total + item.districts.length,
-    0
-  );
-
   console.log(
-    `✓ Seeded ${divisionCount} divisions and ${districtCount} districts into locations collection`
+    `✓ Seeded ${divisionCount} divisions, ${districtCount} districts and ${thanaCount} thanas into locations collection`
   );
 }
 
 /**
  * Fix database by dropping old indexes and clearing data
+ * npm run fix-db -- --fix-only-locations=true
  */
 function getFixOnlyLocationsArg(): boolean {
   const argument = process.argv.find((arg) => arg.startsWith('--fix-only-locations='));

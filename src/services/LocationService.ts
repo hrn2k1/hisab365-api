@@ -24,6 +24,17 @@ export class LocationService {
           parentName: {
             $ifNull: [{ $arrayElemAt: ['$parent.name', 0] }, null],
           },
+          typeOrder: {
+            $switch: {
+              branches: [
+                { case: { $eq: ['$type', 'division'] }, then: 1 },
+                { case: { $eq: ['$type', 'district'] }, then: 2 },
+                { case: { $eq: ['$type', 'thana'] }, then: 3 },
+                { case: { $eq: ['$type', 'area'] }, then: 4 },
+              ],
+              default: 5,
+            },
+          },
         },
       },
       {
@@ -43,7 +54,7 @@ export class LocationService {
    * Get all locations
    */
   async getAllLocations(): Promise<LocationDto[]> {
-    return this.getLocationsWithParentName({}, { type: 1, name: 1 });
+    return this.getLocationsWithParentName({}, { typeOrder: 1, parentName: 1, name: 1 });
   }
 
   /**
