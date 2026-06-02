@@ -39,10 +39,12 @@ import { LocationService } from '../services/LocationService';
  *               data:
  *                 - id: 1
  *                   parentId: null
+ *                   parentName: null
  *                   type: "division"
  *                   name: "Rajshahi"
  *                 - id: 2
  *                   parentId: null
+ *                   parentName: null
  *                   type: "division"
  *                   name: "Dhaka"
  *   post:
@@ -128,10 +130,12 @@ import { LocationService } from '../services/LocationService';
  *               data:
  *                 - id: 9
  *                   parentId: 1
+ *                   parentName: "Rajshahi"
  *                   type: "district"
  *                   name: "Rajshahi"
  *                 - id: 13
  *                   parentId: 1
+ *                   parentName: "Rajshahi"
  *                   type: "district"
  *                   name: "Joypurhat"
  */
@@ -277,9 +281,11 @@ import { LocationService } from '../services/LocationService';
  *               success: true
  *               data:
  *                 - id: 1
+ *                   parentName: null
  *                   type: "division"
  *                   name: "Rajshahi"
  *                 - id: 9
+ *                   parentName: "Rajshahi"
  *                   type: "district"
  *                   name: "Rajshahi"
  */
@@ -309,10 +315,12 @@ import { LocationService } from '../services/LocationService';
  *               data:
  *                 - id: 9
  *                   parentId: 1
+ *                   parentName: "Rajshahi"
  *                   type: "district"
  *                   name: "Rajshahi"
  *                 - id: 10
  *                   parentId: 1
+ *                   parentName: "Rajshahi"
  *                   type: "district"
  *                   name: "Natore"
  */

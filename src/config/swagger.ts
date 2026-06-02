@@ -201,6 +201,11 @@ const options = {
               type: 'number',
               description: 'Parent location ID (for hierarchy)',
             },
+            parentName: {
+              type: 'string',
+              nullable: true,
+              description: 'Parent location name derived from parentId',
+            },
             type: {
               type: 'string',
               enum: ['division', 'district', 'thana', 'area'],
