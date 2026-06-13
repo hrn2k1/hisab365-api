@@ -259,7 +259,7 @@ export class AccountController {
   async patchAccount(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const { name, type, openingBalance, openingBalanceDate, remarks } = req.body;
+      const { name, type, openingBalance, openingBalanceDate, remarks, props } = req.body;
       let account = await new AccountService(req.user?.loggedInCompanyId!).getAccountById(id);
 
       if (!account) {
@@ -274,6 +274,7 @@ export class AccountController {
         ...(openingBalance !== undefined && { openingBalance }),
         ...(openingBalanceDate !== undefined && { openingBalanceDate }),
         ...(remarks !== undefined && { remarks }),
+        ...(props !== undefined && { props }),
         ...(currentBalance !== undefined && { currentBalance }),
       };
 
