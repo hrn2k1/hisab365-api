@@ -23,10 +23,6 @@ export interface ITransactionActivityLog {
     comment: string;
 }
 
-export interface ITransactionProps {
-    [key: string]: any;
-}
-
 export interface ITransaction extends Document {
     date: Date;
     voucherNo: string;
@@ -39,7 +35,7 @@ export interface ITransaction extends Document {
     createdBy: string;
     checkedBy: string[];
     approvedBy: string[];
-    props: ITransactionProps;
+    props: Record<string, any>;
     activityLog: ITransactionActivityLog[];
     createdAt: Date;
     updatedAt?: Date;
@@ -65,8 +61,6 @@ const transactionActivityLogSchema = new Schema<ITransactionActivityLog>({
     action: { type: String, required: true },
     comment: { type: String, required: false },
 }, { _id: false });
-
-const transactionPropsSchema = new Schema<ITransactionProps>({}, { strict: false, _id: false });
 
 const transactionSchema = new Schema<ITransaction>(
     {
@@ -120,7 +114,8 @@ const transactionSchema = new Schema<ITransaction>(
             default: [],
         },
         props: {
-            type: transactionPropsSchema,
+            type: Map,
+            of: Schema.Types.Mixed,
             default: {},
         },
         activityLog: {

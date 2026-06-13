@@ -1,5 +1,5 @@
 import e, { Request, Response } from 'express';
-import { Controller, Get, Post, Put, Delete, Authenticated } from '../decorators/index';
+import { Controller, Get, Post, Put, Delete, Authenticated, Patch } from '../decorators/index';
 import { AccountService } from '../services/AccountService';
 import { UserService } from '../services/UserService';
 import { randomUUID } from 'crypto';
@@ -252,6 +252,51 @@ export class AccountController {
     }
 
     res.json({ success: true, message: 'Account updated successfully', data: account });
+  }
+
+  @Authenticated()
+  @Patch('/:id')
+  async patchAccount(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { name, type, openingBalance, openingBalanceDate, remarks } = req.body;
+      let account = await new AccountService(req.user?.loggedInCompanyId!).getAccountById(id);
+
+      if (!account) {
+        res.status(404).json({ success: false, message: 'Account not found' });
+        return;
+      }
+      const currentBalance = (account.currentBalance || 0) + ((openingBalance || 0) - (account.openingBalance || 0));
+
+      const updateData: Record<string, unknown> = {
+        ...(name !== undefined && { name }),
+        ...(type !== undefined && { type }),
+        ...(openingBalance !== undefined && { openingBalance }),
+        ...(openingBalanceDate !== undefined && { openingBalanceDate }),
+        ...(remarks !== undefined && { remarks }),
+        ...(currentBalance !== undefined && { currentBalance }),
+      };
+
+      const company = await new AccountService(req.user?.loggedInCompanyId!).setAccount(id, updateData);
+
+      if (!company) {
+        res.status(404).json({
+          success: false,
+          message: 'Account not found',
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: company,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
   }
 
   @Delete('/:id')

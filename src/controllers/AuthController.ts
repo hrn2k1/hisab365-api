@@ -325,6 +325,12 @@ export class AuthController {
         name: user.name,
         type: user.type,
         companyIds: user.memberships.map(membership => membership.companyId),
+        memberships: user.memberships.map(membership => ({
+          companyId: membership.companyId,
+          membershipType: membership.membershipType,
+          role: membership.role,
+          status: membership.status,
+        })),
       };
 
       if (user.memberships.length === 1) {
@@ -381,6 +387,12 @@ export class AuthController {
         name: user.name,
         type: user.type,
         companyIds: user.memberships.map((membership) => membership.companyId),
+        memberships: user.memberships.map((membership) => ({
+          companyId: membership.companyId,
+          membershipType: membership.membershipType,
+          role: membership.role,
+          status: membership.status,
+        })),
       };
       if (user.memberships.length === 1) {
         tokenPayload.loggedInCompanyId = user.memberships[0].companyId;
@@ -545,6 +557,7 @@ export class AuthController {
         name: req.user.name,
         type: req.user.type,
         companyIds: req.user.companyIds,
+        memberships: req.user.memberships,
         loggedInCompanyId: companyId,
         loggedInCompanyName: company.name,
       });

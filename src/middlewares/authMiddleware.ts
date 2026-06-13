@@ -14,6 +14,12 @@ declare global {
         name: string;
         type: string;
         companyIds: string[];
+        memberships?: {
+          companyId: string;
+          membershipType: string;
+          role: string;
+          status: string;
+        }[];
         loggedInCompanyId?: string;
       };
     }

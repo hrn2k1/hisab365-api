@@ -83,9 +83,8 @@ import { Setting } from '../models/Setting';
  *             example:
  *               success: true
  *               data:
- *                 Cash: "Cash Account"
- *                 Bank: "Bank Account"
- *                 MobileBanking: "Mobile Banking"
+ *                 CASH: "Cash Account"
+ *                 BANK: "Bank Account"
  *       500:
  *         description: Server error while fetching account types
  *         content:
@@ -93,6 +92,62 @@ import { Setting } from '../models/Setting';
  *             example:
  *               success: false
  *               message: "An error occurred while fetching account types"
+ */
+
+/**
+ * @swagger
+ * /voucher-types:
+ *   get:
+ *     summary: Get voucher types
+ *     description: Returns the voucher types mapping from the settings document.
+ *     tags:
+ *       - Misc
+ *     responses:
+ *       200:
+ *         description: Voucher types fetched successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 CREDIT: "Credit Voucher"
+ *                 DEBIT: "Debit Voucher"
+ *                 JOURNAL: "Journal Voucher"
+ *       500:
+ *         description: Server error while fetching voucher types
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               message: "An error occurred while fetching voucher types"
+ */
+
+/**
+ * @swagger
+ * /voucher-statuses:
+ *   get:
+ *     summary: Get voucher statuses
+ *     description: Returns the voucher statuses mapping from the settings document.
+ *     tags:
+ *       - Misc
+ *     responses:
+ *       200:
+ *         description: Voucher statuses fetched successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 "DRAFT": "Draft"
+ *                 "PENDING_FOR_CHECKING": "Pending for checking"
+ *                 "APPROVED": "Approved"
+ *       500:
+ *         description: Server error while fetching voucher statuses
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               message: "An error occurred while fetching voucher statuses"
  */
 
 @Controller('')
@@ -154,6 +209,42 @@ export class MiscController {
 			res.status(500).json({
 				success: false,
 				message: error?.message || 'An error occurred while fetching account types',
+			});
+		}
+	}
+
+	@Get('/voucher-types')
+	async getVoucherTypes(req: Request, res: Response): Promise<void> {
+		try {
+			const setting = await Setting.findOne({}, { voucherTypes: 1, _id: 0 }).lean();
+			const rawVoucherTypes = (setting as any)?.voucherTypes || {};
+
+			res.json({
+				success: true,
+				data: rawVoucherTypes,
+			});
+		} catch (error: any) {
+			res.status(500).json({
+				success: false,
+				message: error?.message || 'An error occurred while fetching voucher types',
+			});
+		}
+	}
+
+	@Get('/voucher-statuses')
+	async getVoucherStatuses(req: Request, res: Response): Promise<void> {
+		try {
+			const setting = await Setting.findOne({}, { voucherStatuses: 1, _id: 0 }).lean();
+			const rawVoucherStatuses = (setting as any)?.voucherStatuses || {};
+
+			res.json({
+				success: true,
+				data: rawVoucherStatuses,
+			});
+		} catch (error: any) {
+			res.status(500).json({
+				success: false,
+				message: error?.message || 'An error occurred while fetching voucher statuses',
 			});
 		}
 	}

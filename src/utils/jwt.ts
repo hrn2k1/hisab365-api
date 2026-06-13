@@ -9,6 +9,12 @@ interface TokenPayload {
   companyIds: string[];
   loggedInCompanyId?: string;
   loggedInCompanyName?: string;
+  memberships?: {
+    companyId: string;
+    membershipType: string;
+    role: string;
+    status: string;
+  }[];
 }
 
 /**
@@ -24,6 +30,7 @@ export function generateToken(payload: TokenPayload): string {
     name: payload.name,
     type: payload.type,
     companyIds: payload.companyIds,
+    memberships: payload.memberships,
   };
 
   // Include loggedInCompanyId if provided
@@ -63,6 +70,7 @@ export function verifyToken(token: string): TokenPayload | null {
       name: decoded.name,
       type: decoded.type,
       companyIds: decoded.companyIds ?? [],
+      memberships: decoded.memberships ?? [],
       ...(decoded.loggedInCompanyId && { loggedInCompanyId: decoded.loggedInCompanyId }),
       ...(decoded.loggedInCompanyName && { loggedInCompanyName: decoded.loggedInCompanyName }),
     };
@@ -85,6 +93,7 @@ export function decodeToken(token: string): TokenPayload | null {
       name: decoded.name,
       type: decoded.type,
       companyIds: decoded.companyIds,
+      memberships: decoded.memberships ?? [],
       ...(decoded.loggedInCompanyId && { loggedInCompanyId: decoded.loggedInCompanyId }),
       ...(decoded.loggedInCompanyName && { loggedInCompanyName: decoded.loggedInCompanyName }),
     } : null;
