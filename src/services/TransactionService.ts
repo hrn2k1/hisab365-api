@@ -2,6 +2,8 @@ import Transaction, { ITransaction } from '../models/Transaction';
 import Account, { IAccount } from '../models/Account';
 import mongoose, { Model } from 'mongoose';
 import { isTransactionSupported } from '../config/database';
+import { TransactionDto } from '../types/TransactionDto';
+import { SearchTransactionParams } from '../types/SearchTransactionParams';
 
 export class TransactionService {
     private companyId: string;
@@ -65,6 +67,41 @@ export class TransactionService {
         }
     }
 
+    async searchTransactions(searchParams: SearchTransactionParams): Promise<TransactionDto[]> {
+        const matchConditions: Record<string, any> = {};
+        if (searchParams.dateFrom || searchParams.dateTo) {
+            matchConditions.date = {};
+            if (searchParams.dateFrom) {
+                matchConditions.date.$gte = searchParams.dateFrom;
+            }
+            if (searchParams.dateTo) {
+                matchConditions.date.$lte = searchParams.dateTo;
+            }
+        }
+        if (searchParams.voucherNo) {
+            matchConditions.voucherNo = { $regex: searchParams.voucherNo, $options: 'i' };
+        }
+        if (searchParams.voucherTypes && searchParams.voucherTypes.length > 0) {
+            matchConditions.voucherType = { $in: searchParams.voucherTypes.map(type => new RegExp(type, 'i')) };
+        }
+        if (searchParams.voucherStatuses && searchParams.voucherStatuses.length > 0) {
+            matchConditions.status = { $in: searchParams.voucherStatuses.map(type => new RegExp(type, 'i')) };
+        }
+        if (searchParams.createdBy) {
+            matchConditions.createdBy = { $regex: new RegExp(searchParams.createdBy, 'i') };
+        }
+        if (searchParams.checkedBy && searchParams.checkedBy.length > 0) {
+            matchConditions.checkedBy = { $in: searchParams.checkedBy.map(user => new RegExp(user, 'i')) };
+        }
+        if (searchParams.approvedBy && searchParams.approvedBy.length > 0) {
+            matchConditions.approvedBy = { $in: searchParams.approvedBy.map(user => new RegExp(user, 'i')) };
+        }
+        return this.transactionModel.aggregate<TransactionDto>([
+            { $match: matchConditions },
+            { $project: { _id: 0, __v: 0, details: 0, attachments: 0, activityLog: 0, checkedBy: 0, approvedBy: 0 } },
+            { $sort: { date: -1 } }
+        ]);
+    }
     /**
      * Get all transactions
      */

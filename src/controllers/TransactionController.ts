@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Controller, Get, Post, Put, Delete, Authenticated } from '../decorators';
 import { TransactionService } from '../services/TransactionService';
+import { SearchTransactionParams } from '../types/SearchTransactionParams';
 
 /**
  * @swagger
@@ -8,6 +9,70 @@ import { TransactionService } from '../services/TransactionService';
  *   - name: Transactions
  *     description: Transaction management endpoints
  */
+
+/**
+ * @swagger
+ * /transactions/search:
+ *   post:
+ *     summary: Search transactions with filters
+ *     description: Retrieve a list of all transactions
+ *     tags:
+ *       - Transactions
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               dateFrom:
+ *                 type: string
+ *                 format: date
+ *               dateTo:
+ *                 type: string
+ *                 format: date
+ *               voucherNo:
+ *                 type: string
+ *               voucherTypes:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               voucherStatuses:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               createdBy:
+ *                 type: string
+ *               checkedBy:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               approvedBy:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: List of transactions retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Transaction'
+ *       401:
+ *         description: Unauthorized - Missing or invalid Bearer token
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+*/
 
 /**
  * @swagger
@@ -306,6 +371,25 @@ export class TransactionController {
 
   constructor() {
     //this.transactionService = new TransactionService();
+  }
+
+  @Authenticated()
+  @Post('/search')
+  async searchTransactions(req: Request, res: Response): Promise<void> {
+    try {
+      const searchParams = req.body as SearchTransactionParams;
+      const transactions = await new TransactionService(req.user?.loggedInCompanyId!).searchTransactions(searchParams);
+
+      res.json({
+        success: true,
+        data: transactions,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
   }
 
   @Authenticated()
