@@ -3,7 +3,7 @@ import { randomUUID } from 'crypto';
 import { getCompanyConnection } from '../config/database';
 
 export interface ITransactionDetail {
-    accountId: string;
+    accountId: string | any;
     type: 'Credit' | 'Debit';
     amount: number;
 }
@@ -18,7 +18,7 @@ export interface ITransactionAttachment {
 
 export interface ITransactionActivityLog {
     timestamp: Date;
-    userId: string;
+    userId: string | any;
     action: string;
     comment: string;
 }
@@ -42,7 +42,12 @@ export interface ITransaction extends Document {
 }
 
 const transactionDetailSchema = new Schema<ITransactionDetail>({
-    accountId: { type: String, required: true },
+    // accountId: { type: String, required: true },
+    accountId: {
+        type: String,
+        ref: "Account",   // <-- this tells Mongoose the collection/model
+        required: true 
+    },
     type: { type: String, enum: ['Credit', 'Debit'], required: true },
     amount: { type: Number, required: true },
 }, { _id: false });
@@ -57,7 +62,7 @@ const transactionAttachmentSchema = new Schema<ITransactionAttachment>({
 
 const transactionActivityLogSchema = new Schema<ITransactionActivityLog>({
     timestamp: { type: Date, required: true },
-    userId: { type: String, required: true },
+    userId: { type: String, required: true, ref: "User" },
     action: { type: String, required: true },
     comment: { type: String, required: false },
 }, { _id: false });
@@ -103,14 +108,17 @@ const transactionSchema = new Schema<ITransaction>(
         },
         createdBy: {
             type: String,
+            ref: "User",   // <-- this tells Mongoose the collection/model
             required: true,
         },
         checkedBy: {
             type: [String],
+            ref: "User",   // <-- this tells Mongoose the collection/model
             default: [],
         },
         approvedBy: {
             type: [String],
+            ref: "User",   // <-- this tells Mongoose the collection/model
             default: [],
         },
         props: {

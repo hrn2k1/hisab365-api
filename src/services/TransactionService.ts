@@ -1,4 +1,4 @@
-import Transaction, { ITransaction } from '../models/Transaction';
+import Transaction, { ITransaction, ITransactionActivityLog, ITransactionDetail } from '../models/Transaction';
 import Account, { IAccount } from '../models/Account';
 import mongoose, { Model } from 'mongoose';
 import { isTransactionSupported } from '../config/database';
@@ -98,7 +98,7 @@ export class TransactionService {
         }
         return this.transactionModel.aggregate<TransactionDto>([
             { $match: matchConditions },
-            { $project: { _id: 0, __v: 0, details: 0, attachments: 0, activityLog: 0, checkedBy: 0, approvedBy: 0 } },
+            { $project: { details: 0, attachments: 0, activityLog: 0, checkedBy: 0, approvedBy: 0 } },
             { $sort: { date: -1 } }
         ]);
     }
@@ -113,7 +113,30 @@ export class TransactionService {
      * Get transaction by ID
      */
     async getTransactionById(id: string): Promise<ITransaction | null> {
-        return this.transactionModel.findById(id);
+        const userFields = 'name email contactNumber photo';
+        const accountFields = 'name currentBalance';
+        let transaction = await this.transactionModel.findById(id).populate('details.accountId', accountFields)
+            .populate('createdBy', userFields).populate('checkedBy', userFields).populate('approvedBy', userFields)
+            .populate('activityLog.userId', userFields)
+            .lean();
+
+        if (transaction) {
+            transaction.details = transaction.details.map(detail => {
+                return {
+                    ...detail,
+                    accountId: detail.accountId._id,
+                    account: detail.accountId
+                } as unknown as ITransactionDetail;
+            });
+            transaction.activityLog = transaction.activityLog.map(log => {
+                return {
+                    ...log,
+                    userId: log.userId._id,
+                    user: log.userId                   
+                } as unknown as ITransactionActivityLog;
+            });
+        }
+        return transaction;
     }
 
     /**
