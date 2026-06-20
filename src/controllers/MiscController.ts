@@ -182,6 +182,37 @@ export class MiscController {
 						: rawOrganizationTypes
 				).sort(([a], [b]) => a.localeCompare(b))
 			);
+			Object.keys(sortedOrganizationTypes).forEach((key) => {
+				const value = sortedOrganizationTypes[key];
+				if (typeof value === 'object' && value !== null && 'label' in value) {
+					sortedOrganizationTypes[key] = (value as any).label;
+				}
+			});
+			res.json({
+				success: true,
+				data: sortedOrganizationTypes,
+			});
+		} catch (error: any) {
+			res.status(500).json({
+				success: false,
+				message: error?.message || 'An error occurred while fetching organization types',
+			});
+		}
+	}
+
+	@Get('/v2/organization-types')
+	async getOrganizationTypesV2(req: Request, res: Response): Promise<void> {
+		try {
+			const setting = await Setting.findOne({}, { organizationTypes: 1, _id: 0 }).lean();
+			const rawOrganizationTypes = setting?.organizationTypes || {};
+
+			const sortedOrganizationTypes = Object.fromEntries(
+				Object.entries(
+					rawOrganizationTypes instanceof Map
+						? Object.fromEntries(rawOrganizationTypes)
+						: rawOrganizationTypes
+				).sort(([a], [b]) => a.localeCompare(b))
+			);
 
 			res.json({
 				success: true,
@@ -197,6 +228,29 @@ export class MiscController {
 
 	@Get('/account-types')
 	async getAccountTypes(req: Request, res: Response): Promise<void> {
+		try {
+			const setting = await Setting.findOne({}, { accountTypes: 1, _id: 0 }).lean();
+			const rawAccountTypes = (setting as any)?.accountTypes || {};
+			Object.keys(rawAccountTypes).forEach((key) => {
+				const value = rawAccountTypes[key];
+				if (typeof value === 'object' && value !== null && 'label' in value) {
+					rawAccountTypes[key] = (value as any).label;
+				}
+			});
+			res.json({
+				success: true,
+				data: rawAccountTypes,
+			});
+		} catch (error: any) {
+			res.status(500).json({
+				success: false,
+				message: error?.message || 'An error occurred while fetching account types',
+			});
+		}
+	}
+
+	@Get('/v2/account-types')
+	async getAccountTypesV2(req: Request, res: Response): Promise<void> {
 		try {
 			const setting = await Setting.findOne({}, { accountTypes: 1, _id: 0 }).lean();
 			const rawAccountTypes = (setting as any)?.accountTypes || {};
@@ -219,6 +273,31 @@ export class MiscController {
 			const setting = await Setting.findOne({}, { voucherTypes: 1, _id: 0 }).lean();
 			const rawVoucherTypes = (setting as any)?.voucherTypes || {};
 
+			Object.keys(rawVoucherTypes).forEach((key) => {
+				const value = rawVoucherTypes[key];
+				if (typeof value === 'object' && value !== null && 'label' in value) {
+					rawVoucherTypes[key] = (value as any).label;
+				}
+			});
+
+			res.json({
+				success: true,
+				data: rawVoucherTypes,
+			});
+		} catch (error: any) {
+			res.status(500).json({
+				success: false,
+				message: error?.message || 'An error occurred while fetching voucher types',
+			});
+		}
+	}
+
+	@Get('/v2/voucher-types')
+	async getVoucherTypesV2(req: Request, res: Response): Promise<void> {
+		try {
+			const setting = await Setting.findOne({}, { voucherTypes: 1, _id: 0 }).lean();
+			const rawVoucherTypes = (setting as any)?.voucherTypes || {};
+
 			res.json({
 				success: true,
 				data: rawVoucherTypes,
@@ -233,6 +312,31 @@ export class MiscController {
 
 	@Get('/voucher-statuses')
 	async getVoucherStatuses(req: Request, res: Response): Promise<void> {
+		try {
+			const setting = await Setting.findOne({}, { voucherStatuses: 1, _id: 0 }).lean();
+			const rawVoucherStatuses = (setting as any)?.voucherStatuses || {};
+
+			Object.keys(rawVoucherStatuses).forEach((key) => {
+				const value = rawVoucherStatuses[key];
+				if (typeof value === 'object' && value !== null && 'label' in value) {
+					rawVoucherStatuses[key] = (value as any).label;
+				}
+			});
+
+			res.json({
+				success: true,
+				data: rawVoucherStatuses,
+			});
+		} catch (error: any) {
+			res.status(500).json({
+				success: false,
+				message: error?.message || 'An error occurred while fetching voucher statuses',
+			});
+		}
+	}
+
+	@Get('/v2/voucher-statuses')
+	async getVoucherStatusesV2(req: Request, res: Response): Promise<void> {
 		try {
 			const setting = await Setting.findOne({}, { voucherStatuses: 1, _id: 0 }).lean();
 			const rawVoucherStatuses = (setting as any)?.voucherStatuses || {};

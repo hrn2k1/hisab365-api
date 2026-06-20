@@ -2,7 +2,10 @@ import { Schema, model, Document } from 'mongoose';
 
 export interface ISetting extends Document {
     _id: string;
-    organizationTypes: { [key: string]: string };
+    organizationTypes: { [key: string]: string | { label: string } & Record<string, any> };
+    accountTypes: { [key: string]: string | { label: string } & Record<string, any> };
+    voucherTypes: { [key: string]: string | { label: string } & Record<string, any> };
+    voucherStatuses: { [key: string]: string | { label: string } & Record<string, any> };
 }
 
 const settingSchema = new Schema<ISetting>(
@@ -13,7 +16,22 @@ const settingSchema = new Schema<ISetting>(
         },
         organizationTypes: {
             type: Map,
-            of: String,
+            of: Schema.Types.Mixed,
+            default: {},
+        },
+        accountTypes: {
+            type: Map,
+            of: Schema.Types.Mixed,
+            default: {},
+        },
+        voucherTypes: {
+            type: Map,
+            of: Schema.Types.Mixed,
+            default: {},
+        },
+        voucherStatuses: {
+            type: Map,
+            of: Schema.Types.Mixed,
             default: {},
         },
     },
