@@ -69,6 +69,34 @@ import { Setting } from '../models/Setting';
 
 /**
  * @swagger
+ * /v2/organization-types:
+ *   get:
+ *     summary: Get organization types
+ *     description: Returns the organizationTypes mapping from the settings document.
+ *     tags:
+ *       - Misc
+ *     responses:
+ *       200:
+ *         description: Organization types fetched successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 Masjid: {"label": "Mosque", "description": "A place of worship for Muslims"}
+ *                 Mess: {"label": "Mess"}
+ *                 Building: {"label": "Building"}
+ *       500:
+ *         description: Server error while fetching organization types
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               message: "An error occurred while fetching organization types"
+ */
+
+/**
+ * @swagger
  * /account-types:
  *   get:
  *     summary: Get account types
@@ -85,6 +113,33 @@ import { Setting } from '../models/Setting';
  *               data:
  *                 CASH: "Cash Account"
  *                 BANK: "Bank Account"
+ *       500:
+ *         description: Server error while fetching account types
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               message: "An error occurred while fetching account types"
+ */
+
+/**
+ * @swagger
+ * /v2/account-types:
+ *   get:
+ *     summary: Get account types
+ *     description: Returns the accountTypes mapping from the settings document.
+ *     tags:
+ *       - Misc
+ *     responses:
+ *       200:
+ *         description: Account types fetched successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 CASH: {"label": "Cash Account", "color": "green"}
+ *                 BANK: {"label": "Bank Account", "color": "blue"}
  *       500:
  *         description: Server error while fetching account types
  *         content:
@@ -124,6 +179,34 @@ import { Setting } from '../models/Setting';
 
 /**
  * @swagger
+ * /v2/voucher-types:
+ *   get:
+ *     summary: Get voucher types
+ *     description: Returns the voucher types mapping from the settings document.
+ *     tags:
+ *       - Misc
+ *     responses:
+ *       200:
+ *         description: Voucher types fetched successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 CREDIT: {"label": "Credit Voucher", "color": "green"}
+ *                 DEBIT: {"label": "Debit Voucher", "color": "red"}
+ *                 JOURNAL: {"label": "Journal Voucher", "color": "blue"}
+ *       500:
+ *         description: Server error while fetching voucher types
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               message: "An error occurred while fetching voucher types"
+ */
+
+/**
+ * @swagger
  * /voucher-statuses:
  *   get:
  *     summary: Get voucher statuses
@@ -141,6 +224,34 @@ import { Setting } from '../models/Setting';
  *                 "DRAFT": "Draft"
  *                 "PENDING_FOR_CHECKING": "Pending for checking"
  *                 "APPROVED": "Approved"
+ *       500:
+ *         description: Server error while fetching voucher statuses
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               message: "An error occurred while fetching voucher statuses"
+ */
+
+/**
+ * @swagger
+ * /v2/voucher-statuses:
+ *   get:
+ *     summary: Get voucher statuses
+ *     description: Returns the voucher statuses mapping from the settings document.
+ *     tags:
+ *       - Misc
+ *     responses:
+ *       200:
+ *         description: Voucher statuses fetched successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 "DRAFT": {"label": "Draft", "color": "yellow"}
+ *                 "PENDING_FOR_CHECKING": {"label": "Pending for checking", "color": "orange"}
+ *                 "APPROVED": {"label": "Approved", "color": "green"}
  *       500:
  *         description: Server error while fetching voucher statuses
  *         content:
