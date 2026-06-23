@@ -14,11 +14,11 @@ import { randomUUID } from 'crypto';
  *       - Accounts
  *     parameters:
  *       - in: query
- *         name: type
+ *         name: types
  *         required: false
  *         schema:
  *           type: string
- *         description: Optional account type filter. If empty or not provided, returns all accounts.
+ *         description: Optional account types filter (comma-separated). If empty or not provided, returns all accounts.
  *     responses:
  *       200:
  *         description: Successfully retrieved all accounts
@@ -181,9 +181,10 @@ export class AccountController {
   @Get()
   @Authenticated()
   async getAllAccounts(req: Request, res: Response): Promise<void> {
-    const type = typeof req.query.type === 'string' ? req.query.type.trim() : '';
+    const types = typeof req.query.types === 'string' ? req.query.types.trim() : '';
+    const filteredTypes = types ? types.split(',').map(t => t.trim()) : [];
     const accountService = new AccountService(req.user?.loggedInCompanyId!);
-    const accounts = type ? await accountService.getAccountsByType(type) : await accountService.getAllAccounts();
+    const accounts = filteredTypes.length > 0 ? await accountService.getAccountsByTypes(filteredTypes) : await accountService.getAllAccounts();
     res.json({ success: true, data: accounts });
   }
 
