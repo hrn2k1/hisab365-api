@@ -847,7 +847,7 @@ export class TransactionController {
         });
         return;
       }
-      const details: ITransactionDetail[] = journalTransactionData.drDetails.map((detail: any) => ({
+      const details: ITransactionDetail[] = journalTransactionData.details.map((detail: any) => ({
         accountId: detail.accountId,
         type: detail.type,
         amount: detail.amount,
