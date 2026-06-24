@@ -232,7 +232,7 @@ import { ITransactionDetail } from '../models/Transaction';
  *               - date
  *               - voucherNo
  *               - description
- *               - cashBankAccountId
+ *               - cashOrBankAccountId
  *               - details
  *               - status
  *               - createdBy
@@ -244,7 +244,7 @@ import { ITransactionDetail } from '../models/Transaction';
  *                 type: string
  *               description:
  *                 type: string
- *               cashBankAccountId:
+ *               cashOrBankAccountId:
  *                 type: string
  *               details:
  *                 type: array
@@ -322,7 +322,7 @@ import { ITransactionDetail } from '../models/Transaction';
  *               - date
  *               - voucherNo
  *               - description
- *               - cashBankAccountId
+ *               - cashOrBankAccountId
  *               - details
  *               - status
  *               - createdBy
@@ -334,7 +334,7 @@ import { ITransactionDetail } from '../models/Transaction';
  *                 type: string
  *               description:
  *                 type: string
- *               cashBankAccountId:
+ *               cashOrBankAccountId:
  *                 type: string
  *               details:
  *                 type: array
@@ -735,7 +735,7 @@ export class TransactionController {
       const amount = creditTransactionData.details.reduce((sum: number, detail: ITransactionDetail) => sum + detail.amount, 0);
       const details: ITransactionDetail[] = [
         {
-          accountId: creditTransactionData.cashBankAccountId,
+          accountId: creditTransactionData.cashOrBankAccountId,
           type: 'Dr',
           amount: amount,
         }
@@ -788,7 +788,7 @@ export class TransactionController {
       const amount = debitTransactionData.details.reduce((sum: number, detail: ITransactionDetail) => sum + detail.amount, 0);
       const details: ITransactionDetail[] = [
         {
-          accountId: debitTransactionData.cashBankAccountId,
+          accountId: debitTransactionData.cashOrBankAccountId,
           type: 'Cr',
           amount: amount,
         }
