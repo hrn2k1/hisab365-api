@@ -4,7 +4,7 @@ import { getCompanyConnection } from '../config/database';
 
 export interface ITransactionDetail {
     accountId: string | any;
-    type: 'Credit' | 'Debit';
+    type: 'Cr' | 'Dr';
     amount: number;
 }
 
@@ -26,7 +26,7 @@ export interface ITransactionActivityLog {
 export interface ITransaction extends Document {
     date: Date;
     voucherNo: string;
-    voucherType: 'Credit' | 'Debit' | 'Journal';
+    voucherType: string | 'CREDIT' | 'DEBIT' | 'JOURNAL';
     amount: number;
     description: string;
     details: ITransactionDetail[];
@@ -46,9 +46,9 @@ const transactionDetailSchema = new Schema<ITransactionDetail>({
     accountId: {
         type: String,
         ref: "Account",   // <-- this tells Mongoose the collection/model
-        required: true 
+        required: true
     },
-    type: { type: String, enum: ['Credit', 'Debit'], required: true },
+    type: { type: String, enum: ['Cr', 'Dr'], required: true },
     amount: { type: Number, required: true },
 }, { _id: false });
 
@@ -83,7 +83,7 @@ const transactionSchema = new Schema<ITransaction>(
         },
         voucherType: {
             type: String,
-            enum: ['Credit', 'Debit', 'Journal'],
+            enum: ['CREDIT', 'DEBIT', 'JOURNAL'],
             required: true,
         },
         amount: {

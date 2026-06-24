@@ -33,9 +33,9 @@ export class TransactionService {
 
             const amount = operation === 'apply' ? detail.amount : -detail.amount;
 
-            if (detail.type === 'Debit') {
+            if (detail.type === 'Dr') {
                 account.currentBalance += amount;
-            } else if (detail.type === 'Credit') {
+            } else if (detail.type === 'Cr') {
                 account.currentBalance -= amount;
             }
 
@@ -51,9 +51,9 @@ export class TransactionService {
         let totalDebit = 0;
 
         for (const detail of details) {
-            if (detail.type === 'Credit') {
+            if (detail.type === 'Cr') {
                 totalCredit += detail.amount;
-            } else if (detail.type === 'Debit') {
+            } else if (detail.type === 'Dr') {
                 totalDebit += detail.amount;
             }
         }

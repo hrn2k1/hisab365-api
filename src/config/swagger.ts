@@ -324,9 +324,9 @@ const options = {
             },
             voucherType: {
               type: 'string',
-              enum: ['Credit', 'Debit', 'Journal'],
+              enum: ['CREDIT', 'DEBIT', 'JOURNAL'],
               description: 'Voucher type',
-              example: 'Credit',
+              example: 'CREDIT',
             },
             amount: {
               type: 'number',
@@ -350,7 +350,7 @@ const options = {
                   },
                   type: {
                     type: 'string',
-                    enum: ['Credit', 'Debit'],
+                    enum: ['Cr', 'Dr'],
                     description: 'Detail type',
                   },
                   amount: {
