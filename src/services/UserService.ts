@@ -76,7 +76,11 @@ export class UserService {
 
     if (existingMembership) {
       // 4. If membership exists, update it
-      await this.editMembership(user._id.toString(), companyId, membershipData);
+      await this.editMembership(user._id.toString(), companyId,
+        {
+          ...membershipData,
+          statusDate: membershipData.statusDate ?? new Date()
+        });
     } else {
       // 5. If not, add new membership
       const newMembership: IMembership = {

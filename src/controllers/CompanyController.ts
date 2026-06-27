@@ -431,6 +431,10 @@ import { UserService } from '../services/UserService';
  *                 type: string
  *               contactNumber:
  *                 type: string
+ *               password:
+ *                 type: string
+ *               props:
+ *                type: object
  *               membershipType:
  *                 type: string
  *               role:
@@ -441,6 +445,8 @@ import { UserService } from '../services/UserService';
  *             name: "John Doe"
  *             email: "john@example.com"
  *             contactNumber: "0123456789"
+ *             password: "securepassword"
+ *             props: {}
  *             membershipType: "admin"
  *             role: "manager"
  *             status: "active"
@@ -770,10 +776,10 @@ export class CompanyController {
   async addCompanyUser(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const { name, email, contactNumber, membershipType, role, status } = req.body;
+      const { name, email, contactNumber, membershipType, role, status, password, props } = req.body;
       const user = await this.userService.addUserToCompany(
         id,
-        { name, email, contactNumber },
+        { name, email, contactNumber, type: "user", password, props },
         { membershipType, role, status }
       );
 
