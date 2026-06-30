@@ -795,12 +795,36 @@ export class CompanyController {
     }
   }
 
+   @Authenticated()
+  @Patch('/:id/users/:userId')
+  async editCompanyUser(req: Request, res: Response): Promise<void> {
+    try {
+      const { id, userId } = req.params;
+      const { name, email, contactNumber, membershipType, role, status, props } = req.body;
+      const user = await this.userService.editUserInCompany(
+        id,
+        userId,
+        { name, email, contactNumber, type: "user", props },
+        { membershipType, role, status }
+      );
+
+      res.json({
+        success: true,
+        data: user?.toObject(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
+
   @Authenticated()
-  @Delete('/:id/users')
+  @Delete('/:id/users/:userId')
   async removeCompanyUser(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
-      const { userId } = req.body;
+      const { id, userId } = req.params;
       const user = await this.userService.removeUserFromCompany(
         id,
         userId

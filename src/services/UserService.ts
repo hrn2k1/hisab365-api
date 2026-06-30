@@ -98,6 +98,50 @@ export class UserService {
     return this.getUserById(user._id.toString());
   }
 
+  async editUserInCompany(companyId: string, userId: string, userData: Partial<IUser>, membershipData: Partial<IMembership>): Promise<IUser | null> {
+    // 1. Check if user exists by email or contactNumber
+    let user: IUser | null = null;
+    if (userData.email || userData.contactNumber) {
+      user = await this.getUserByEmailOrContact(userData.email ?? '', userData.contactNumber ?? '');
+    }
+
+    // 2. If user exists and it's not the same user being edited, throw an error
+    if (user && user._id.toString() !== userId) {
+      throw new Error('User with the provided email or contact number already exists.');
+    }
+    user = await this.getUserById(userId);
+    if (!user) {
+      throw new Error('User not found.');
+    }
+    await this.setUser(userId, userData);
+
+    // 3. Check if membership for this company already exists
+    const existingMembership = user.memberships?.find(m => m.companyId === companyId);
+
+    if (existingMembership) {
+      // 4. If membership exists, update it
+      await this.editMembership(user._id.toString(), companyId,
+        {
+          ...membershipData,
+          statusDate: membershipData.statusDate ?? new Date()
+        });
+    } else {
+      // 5. If not, add new membership
+      const newMembership: IMembership = {
+        companyId,
+        role: membershipData.role ?? 'user',
+        status: membershipData.status ?? 'active',
+        membershipType: membershipData.membershipType ?? 'general',
+        joinedAt: membershipData.joinedAt ?? new Date(),
+        statusDate: membershipData.statusDate ?? new Date()
+      } as IMembership;
+      await this.addMembership(user._id.toString(), newMembership);
+    }
+
+    // 6. Return the updated user
+    return this.getUserById(user._id.toString());
+  }
+
   /**
    * Remove a user's membership for a specific company
   */
