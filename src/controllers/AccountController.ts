@@ -205,7 +205,7 @@ export class AccountController {
   @Post()
   @Authenticated()
   async createAccount(req: Request, res: Response): Promise<void> {
-    const { name, type, openingBalance, openingBalanceDate, remarks, props } = req.body;
+    const { name, type, status, openingBalance, openingBalanceDate, remarks, props } = req.body;
 
     if (!name || !type) {
       res.status(400).json({ success: false, message: 'Name and type are required' });
@@ -215,6 +215,7 @@ export class AccountController {
     const account = await new AccountService(req.user?.loggedInCompanyId!).createAccount({
       name,
       type,
+      status: status || 'ACTIVE',
       openingBalance: openingBalance || 0,
       openingBalanceDate: openingBalanceDate || new Date(),
       currentBalance: openingBalance || 0,
@@ -229,7 +230,7 @@ export class AccountController {
   @Authenticated()
   async updateAccount(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
-    const { name, type, openingBalance, openingBalanceDate, remarks, props } = req.body;
+    const { name, type, status, openingBalance, openingBalanceDate, remarks, props } = req.body;
     let account = await new AccountService(req.user?.loggedInCompanyId!).getAccountById(id);
 
     if (!account) {
@@ -245,6 +246,7 @@ export class AccountController {
       currentBalance,
       remarks,
       props,
+      status: status || 'ACTIVE',
     });
 
     if (!account) {
@@ -260,7 +262,7 @@ export class AccountController {
   async patchAccount(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const { name, type, openingBalance, openingBalanceDate, remarks, props } = req.body;
+      const { name, type, status, openingBalance, openingBalanceDate, remarks, props } = req.body;
       let account = await new AccountService(req.user?.loggedInCompanyId!).getAccountById(id);
 
       if (!account) {
@@ -277,6 +279,7 @@ export class AccountController {
         ...(remarks !== undefined && { remarks }),
         ...(props !== undefined && { props }),
         ...(currentBalance !== undefined && { currentBalance }),
+        ...(status !== undefined && { status }),
       };
 
       const company = await new AccountService(req.user?.loggedInCompanyId!).setAccount(id, updateData);

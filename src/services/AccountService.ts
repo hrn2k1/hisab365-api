@@ -40,6 +40,20 @@ export class AccountService {
    * Create new account
    */
   async createAccount(data: Partial<IAccount>): Promise<IAccount> {
+    if (data.type === 'CUSTOMER' || data.type === 'SUPPLIER' || data.type === 'MEMBER') {
+      if (data.props?.CONTACT_NUMBER) {
+        const accounts = await this.accountModel.find({ type: data.type, 'props.CONTACT_NUMBER': data.props?.CONTACT_NUMBER });
+        if (accounts.length > 0) {
+          throw new Error(`An account of type ${data.type} with the same contact number already exists.`);
+        }
+      }
+      if (data.props?.CONTACT_EMAIL) {
+        const accounts = await this.accountModel.find({ type: data.type, 'props.CONTACT_EMAIL': data.props?.CONTACT_EMAIL });
+        if (accounts.length > 0) {
+          throw new Error(`An account of type ${data.type} with the same contact email already exists.`);
+        }
+      }
+    }
     const account = new this.accountModel(data);
     return await account.save();
   }
@@ -48,23 +62,51 @@ export class AccountService {
    * Update account
    */
   async updateAccount(id: string, data: Partial<IAccount>): Promise<IAccount | null> {
+    if (data.type === 'CUSTOMER' || data.type === 'SUPPLIER' || data.type === 'MEMBER') {
+      if (data.props?.CONTACT_NUMBER) {
+        const accounts = await this.accountModel.find({ type: data.type, _id: { $ne: id }, 'props.CONTACT_NUMBER': data.props?.CONTACT_NUMBER });
+        if (accounts.length > 0) {
+          throw new Error(`An account of type ${data.type} with the same contact number already exists.`);
+        }
+      }
+      if (data.props?.CONTACT_EMAIL) {
+        const accounts = await this.accountModel.find({ type: data.type, _id: { $ne: id }, 'props.CONTACT_EMAIL': data.props?.CONTACT_EMAIL });
+        if (accounts.length > 0) {
+          throw new Error(`An account of type ${data.type} with the same contact email already exists.`);
+        }
+      }
+    }
     return await this.accountModel.findByIdAndUpdate(id, data, { new: true });
   }
 
-    /**
-     * Set specific account fields without replacing the whole document
-     */
-    async setAccount(id: string, accountData: Partial<IAccount>): Promise<IAccount | null> {
-      const fieldsToSet = Object.fromEntries(
-        Object.entries(accountData).filter(([, value]) => value !== undefined)
-      );
-  
-      return this.accountModel.findByIdAndUpdate(
-        id,
-        { $set: fieldsToSet },
-        { new: true, runValidators: true }
-      );
+  /**
+   * Set specific account fields without replacing the whole document
+   */
+  async setAccount(id: string, accountData: Partial<IAccount>): Promise<IAccount | null> {
+    if (accountData.type === 'CUSTOMER' || accountData.type === 'SUPPLIER' || accountData.type === 'MEMBER') {
+      if (accountData.props?.CONTACT_NUMBER) {
+        const accounts = await this.accountModel.find({ type: accountData.type, _id: { $ne: id }, 'props.CONTACT_NUMBER': accountData.props?.CONTACT_NUMBER });
+        if (accounts.length > 0) {
+          throw new Error(`An account of type ${accountData.type} with the same contact number already exists.`);
+        }
+      }
+      if (accountData.props?.CONTACT_EMAIL) {
+        const accounts = await this.accountModel.find({ type: accountData.type, _id: { $ne: id }, 'props.CONTACT_EMAIL': accountData.props?.CONTACT_EMAIL });
+        if (accounts.length > 0) {
+          throw new Error(`An account of type ${accountData.type} with the same contact email already exists.`);
+        }
+      }
     }
+    const fieldsToSet = Object.fromEntries(
+      Object.entries(accountData).filter(([, value]) => value !== undefined)
+    );
+
+    return this.accountModel.findByIdAndUpdate(
+      id,
+      { $set: fieldsToSet },
+      { new: true, runValidators: true }
+    );
+  }
 
   /**
    * Delete account

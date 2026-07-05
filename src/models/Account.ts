@@ -10,6 +10,7 @@ export interface IAccount extends Document {
   currentBalance: number;
   remarks?: string;
   type: string;
+  status?: string;
   props?: Record<string, any>;
   createdAt: Date;
   updatedAt: Date;
@@ -53,6 +54,10 @@ const accountSchema = new Schema<IAccount>(
     userId: {
       type: String,
       default: null,
+    },
+    status: {
+      type: String,
+      default: 'active',
     },
   },
   {
