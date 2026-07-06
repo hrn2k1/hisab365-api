@@ -223,6 +223,8 @@ Available decorators:
 | `PORT` | Server port | `3000` |
 | `NODE_ENV` | Environment | `development` or `production` |
 | `MONGODB_URI` | MongoDB connection string | `mongodb+srv://...` |
+| `MONGODB_DIRECT_URI` | Optional direct MongoDB URI fallback when SRV DNS fails | `mongodb://host1:27017,host2:27017/db?replicaSet=...` |
+| `DNS_SERVERS` | Optional custom DNS resolvers for SRV lookup | `1.1.1.1,8.8.8.8` |
 | `API_PREFIX` | API route prefix | `/api` |
 
 ## Extending the Project
