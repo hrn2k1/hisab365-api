@@ -7,4 +7,6 @@ export type SearchTransactionParams = {
     createdBy?: string;
     checkedBy?: string[];
     approvedBy?: string[];
+    props?: Record<string, any>;
+    searchType?: string;
 };

@@ -96,12 +96,50 @@ export class TransactionService {
         if (searchParams.approvedBy && searchParams.approvedBy.length > 0) {
             matchConditions.approvedBy = { $in: searchParams.approvedBy.map(user => new RegExp(user, 'i')) };
         }
+        if (searchParams.props) {
+            for (const [key, value] of Object.entries(searchParams.props)) {
+                matchConditions[`props.${key}`] = { $regex: new RegExp(value as string, 'i') };
+            }
+        }
+        let projectionFields: any = {
+            details: 0,
+            attachments: 0,
+            activityLog: 0,
+            checkedBy: 0,
+            approvedBy: 0
+        };
+
+        if (searchParams.searchType === 'memberTransactions') {
+            projectionFields = {
+                date: 1,
+                voucherNo: 1,
+                amount: 1,
+                props: 1,
+                status: 1,
+                membersCount: { $add: [{ $size: '$details' }, -1] },
+                description: 1,
+                billForAccount: { $arrayElemAt: ['$billForAccount.name', 0] }
+            };
+
+            return this.transactionModel.aggregate<TransactionDto>([
+                { $match: matchConditions },
+                { $lookup: {
+                    from: 'accounts',
+                    localField: 'props.BILL_FOR_ACCOUNT_ID',
+                    foreignField: '_id',
+                    as: 'billForAccount'
+                }},
+                { $project: projectionFields },
+                { $sort: { date: -1 } }
+            ]);
+        }
         return this.transactionModel.aggregate<TransactionDto>([
             { $match: matchConditions },
-            { $project: { details: 0, attachments: 0, activityLog: 0, checkedBy: 0, approvedBy: 0 } },
+            { $project: projectionFields },
             { $sort: { date: -1 } }
         ]);
     }
+
     /**
      * Get all transactions
      */
@@ -132,7 +170,7 @@ export class TransactionService {
                 return {
                     ...log,
                     userId: log.userId._id,
-                    user: log.userId                   
+                    user: log.userId
                 } as unknown as ITransactionActivityLog;
             });
         }

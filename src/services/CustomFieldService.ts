@@ -10,7 +10,7 @@ export class CustomFieldService {
     }
 
     async getAllCustomFieldsByEntity(entity: string): Promise<ICustomField[]> {
-        return CustomField.find({ entity });
+        return CustomField.find({ entity: { $regex: `^${entity}`, $options: 'i' } });
     }
 
     async createCustomField(data: Partial<ICustomField>): Promise<ICustomField> {

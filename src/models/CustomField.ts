@@ -5,7 +5,7 @@ export interface ICustomField extends Document {
     _id: string;
     name: string;
     label?: string;
-    type: string | "text" | "number" | "checkbox" | "date" | "select";
+    type: string | "TEXT" | "NUMBER" | "CHECKBOX" | "DATE" | "SELECT" | "HIDDEN";
     options?: any[];
     entity: string | "Company" | "User" | "Account" | "Transaction";
     companyId?: string;
@@ -27,7 +27,6 @@ const customFieldSchema = new Schema<ICustomField>(
         },
         type: {
             type: String,
-            enum: ["text", "number", "checkbox", "date", "select"],
             required: true,
         },
         options: {
@@ -36,7 +35,6 @@ const customFieldSchema = new Schema<ICustomField>(
         },
         entity: {
             type: String,
-            enum: ["Company", "User", "Account", "Transaction"],
             required: true,
         },
         companyId: {
