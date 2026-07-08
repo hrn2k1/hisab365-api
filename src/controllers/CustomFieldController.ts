@@ -190,22 +190,24 @@ import { CustomFieldService } from '../services/CustomFieldService';
 
 @Controller('/custom-fields')
 export class CustomFieldController {
-    private customFieldService: CustomFieldService;
+    //private customFieldService: CustomFieldService;
 
     constructor() {
-        this.customFieldService = new CustomFieldService();
+        //this.customFieldService = new CustomFieldService(req.user?.loggedInCompanyId!);
     }
 
     @Get()
     async getAll(req: Request, res: Response): Promise<void> {
-        const fields = await this.customFieldService.getAllCustomFields();
+        const customFieldService = new CustomFieldService(req.user);
+        const fields = await customFieldService.getAllCustomFields();
         res.json({ success: true, data: fields });
     }
 
     @Get('/:id')
     async getById(req: Request, res: Response): Promise<void> {
         const { id } = req.params;
-        const field = await this.customFieldService.getCustomFieldById(id);
+        const customFieldService = new CustomFieldService(req.user);
+        const field = await customFieldService.getCustomFieldById(id);
         if (!field) {
             res.status(404).json({ success: false, message: 'Custom field not found' });
             return;
@@ -215,14 +217,16 @@ export class CustomFieldController {
 
     @Post()
     async create(req: Request, res: Response): Promise<void> {
-        const field = await this.customFieldService.createCustomField(req.body);
+        const customFieldService = new CustomFieldService(req.user);
+        const field = await customFieldService.createCustomField(req.body);
         res.status(201).json({ success: true, data: field });
     }
 
     @Put('/:id')
     async update(req: Request, res: Response): Promise<void> {
         const { id } = req.params;
-        const field = await this.customFieldService.updateCustomField(id, req.body);
+        const customFieldService = new CustomFieldService(req.user);
+        const field = await customFieldService.updateCustomField(id, req.body);
         if (!field) {
             res.status(404).json({ success: false, message: 'Custom field not found' });
             return;
@@ -233,7 +237,8 @@ export class CustomFieldController {
     @Delete('/:id')
     async delete(req: Request, res: Response): Promise<void> {
         const { id } = req.params;
-        const field = await this.customFieldService.deleteCustomField(id);
+        const customFieldService = new CustomFieldService(req.user);
+        const field = await customFieldService.deleteCustomField(id);
         if (!field) {
             res.status(404).json({ success: false, message: 'Custom field not found' });
             return;
@@ -244,7 +249,8 @@ export class CustomFieldController {
     @Get('/by-entity/:entity')
     async getByEntity(req: Request, res: Response): Promise<void> {
         const { entity } = req.params;
-        const fields = await this.customFieldService.getAllCustomFieldsByEntity(entity);
+        const customFieldService = new CustomFieldService(req.user);
+        const fields = await customFieldService.getAllCustomFieldsByEntity(entity);
         res.json({ success: true, data: fields });
     }
 }

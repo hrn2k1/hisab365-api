@@ -47,6 +47,7 @@ export class TransactionService {
         }
     }
     private validateTransactionDetails(details: ITransaction['details']): void {
+        /*
         let totalCredit = 0;
         let totalDebit = 0;
 
@@ -64,6 +65,12 @@ export class TransactionService {
 
         if (totalCredit <= 0 || totalDebit <= 0) {
             throw new Error(`Transaction validation failed: Both credit and debit amounts must be greater than zero (Credit: ${totalCredit}, Debit: ${totalDebit})`);
+        }
+        */
+        for (const detail of details) {
+            if (!detail.amount || detail.amount === 0) {
+                throw new Error(`Transaction detail validation failed: Amount must be greater than zero`);
+            }
         }
     }
 
@@ -102,11 +109,13 @@ export class TransactionService {
             }
         }
         let projectionFields: any = {
-            details: 0,
-            attachments: 0,
-            activityLog: 0,
-            checkedBy: 0,
-            approvedBy: 0
+            date: 1,
+            voucherNo: 1,
+            amount: 1,
+            props: 1,
+            status: 1,
+            detailsCount: { $size: '$details' },
+            description: 1,
         };
 
         if (searchParams.searchType === 'memberTransactions') {
@@ -116,19 +125,14 @@ export class TransactionService {
                 amount: 1,
                 props: 1,
                 status: 1,
-                membersCount: { $add: [{ $size: '$details' }, -1] },
+                membersCount: { $size: '$details' },
+                detailsCount: { $size: '$details' },
                 description: 1,
-                billForAccount: { $arrayElemAt: ['$billForAccount.name', 0] }
+                billFor: '$props.BILL_FOR'
             };
 
             return this.transactionModel.aggregate<TransactionDto>([
                 { $match: matchConditions },
-                { $lookup: {
-                    from: 'accounts',
-                    localField: 'props.BILL_FOR_ACCOUNT_ID',
-                    foreignField: '_id',
-                    as: 'billForAccount'
-                }},
                 { $project: projectionFields },
                 { $sort: { date: -1 } }
             ]);
@@ -371,5 +375,14 @@ export class TransactionService {
                 throw new Error(`Transaction deletion failed: ${error instanceof Error ? error.message : String(error)}`);
             }
         }
+    }
+
+    async getBillForsOfTransactions(): Promise<string[]> {
+        const billFors = await this.transactionModel.aggregate<{ name: string }>([
+            { $match: { 'props.BILL_FOR': { $exists: true, $ne: null } } },
+            { $group: { _id: '$props.BILL_FOR' } },
+            { $project: { _id: 0, name: '$_id' } }
+        ]);
+        return billFors.map(billFor => billFor.name);
     }
 }

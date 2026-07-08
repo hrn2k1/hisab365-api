@@ -636,6 +636,37 @@ import { ITransactionDetail } from '../models/Transaction';
  *         description: Unauthorized - Missing or invalid Bearer token
  */
 
+/**
+ * @swagger
+ * /transactions/billfors:
+ *   get:
+ *     summary: Get all bill fors of transactions
+ *     description: Retrieve a list of all bill fors of transactions
+ *     tags:
+ *       - Transactions
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of bill fors retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *       401:
+ *         description: Unauthorized - Missing or invalid Bearer token
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
+
 @Controller('/transactions')
 export class TransactionController {
   //private transactionService: TransactionService;
@@ -672,6 +703,24 @@ export class TransactionController {
       res.json({
         success: true,
         data: transactions,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
+
+  @Authenticated()
+  @Get('/billFors')
+  async getAllBillFors(req: Request, res: Response): Promise<void> {
+    try {
+      const billFors = await new TransactionService(req.user?.loggedInCompanyId!).getBillForsOfTransactions();
+
+      res.json({
+        success: true,
+        data: billFors,
       });
     } catch (error) {
       res.status(500).json({
@@ -838,12 +887,12 @@ export class TransactionController {
   async createJournalTransaction(req: Request, res: Response): Promise<void> {
     try {
       const journalTransactionData = req.body;
-      const drAmount = journalTransactionData.details.filter((detail: ITransactionDetail) => detail.type === 'Dr').reduce((sum: number, detail: ITransactionDetail) => sum + detail.amount, 0);
-      const crAmount = journalTransactionData.details.filter((detail: ITransactionDetail) => detail.type === 'Cr').reduce((sum: number, detail: ITransactionDetail) => sum + detail.amount, 0);
-      if (drAmount !== crAmount) {
+
+      const totalAmount = journalTransactionData.details.reduce((sum: number, detail: ITransactionDetail) => sum + detail.amount, 0);
+      if (totalAmount === 0) {
         res.status(400).json({
           success: false,
-          message: 'Total debit and credit amounts must be equal for a journal transaction',
+          message: 'Total amount must be greater than zero for a journal transaction',
         });
         return;
       }
@@ -857,7 +906,7 @@ export class TransactionController {
         date: journalTransactionData.date,
         voucherNo: journalTransactionData.voucherNo,
         voucherType: 'JOURNAL',
-        amount: drAmount,
+        amount: totalAmount,
         description: journalTransactionData.description,
         details: details,
         attachments: journalTransactionData.attachments || [],

@@ -11,7 +11,7 @@ export interface ICustomField extends Document {
     companyId?: string;
 }
 
-const customFieldSchema = new Schema<ICustomField>(
+export const customFieldSchema = new Schema<ICustomField>(
     {
         _id: {
             type: String,
