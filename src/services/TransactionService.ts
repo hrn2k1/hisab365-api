@@ -110,6 +110,7 @@ export class TransactionService {
         }
         let projectionFields: any = {
             date: 1,
+            voucherType: 1,
             voucherNo: 1,
             amount: 1,
             props: 1,

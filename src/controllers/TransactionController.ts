@@ -669,11 +669,6 @@ import { ITransactionDetail } from '../models/Transaction';
 
 @Controller('/transactions')
 export class TransactionController {
-  //private transactionService: TransactionService;
-
-  constructor() {
-    //this.transactionService = new TransactionService();
-  }
 
   @Authenticated()
   @Post('/search')
@@ -782,18 +777,18 @@ export class TransactionController {
     try {
       const creditTransactionData = req.body;
       const amount = creditTransactionData.details.reduce((sum: number, detail: ITransactionDetail) => sum + detail.amount, 0);
-      const details: ITransactionDetail[] = [
-        {
-          accountId: creditTransactionData.cashOrBankAccountId,
-          type: 'Dr',
-          amount: amount,
-        }
-      ];
-      details.push(...creditTransactionData.details.map((detail: any) => ({
+      if (amount === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Voucher amount must be greater than zero.',
+        });
+        return;
+      }
+      const details: ITransactionDetail[] = creditTransactionData.details.map((detail: any) => ({
         accountId: detail.accountId,
         type: "Cr",
         amount: detail.amount,
-      })));
+      }));
 
       const transactionData = {
         date: creditTransactionData.date,
@@ -835,18 +830,18 @@ export class TransactionController {
     try {
       const debitTransactionData = req.body;
       const amount = debitTransactionData.details.reduce((sum: number, detail: ITransactionDetail) => sum + detail.amount, 0);
-      const details: ITransactionDetail[] = [
-        {
-          accountId: debitTransactionData.cashOrBankAccountId,
-          type: 'Cr',
-          amount: amount,
-        }
-      ];
-      details.push(...debitTransactionData.details.map((detail: any) => ({
+      if (amount === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Voucher amount must be greater than zero.',
+        });
+        return;
+      }
+      const details: ITransactionDetail[] = debitTransactionData.details.map((detail: any) => ({
         accountId: detail.accountId,
         type: "Dr",
         amount: detail.amount,
-      })));
+      }));
 
       const transactionData = {
         date: debitTransactionData.date,
@@ -887,12 +882,11 @@ export class TransactionController {
   async createJournalTransaction(req: Request, res: Response): Promise<void> {
     try {
       const journalTransactionData = req.body;
-
       const totalAmount = journalTransactionData.details.reduce((sum: number, detail: ITransactionDetail) => sum + detail.amount, 0);
       if (totalAmount === 0) {
         res.status(400).json({
           success: false,
-          message: 'Total amount must be greater than zero for a journal transaction',
+          message: 'Voucher amount must be greater than zero.',
         });
         return;
       }
