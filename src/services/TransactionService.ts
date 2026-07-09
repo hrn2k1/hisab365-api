@@ -534,4 +534,93 @@ export class TransactionService {
             { new: true, runValidators: true }
         );
     }
+
+    async updateTransactionBasicInfo(id: string, updatedBy: string, basicData: Partial<ITransaction>, comment: string): Promise<ITransaction | null> {
+        const transaction = await this.transactionModel.findById(id);
+        if (!transaction) {
+            throw new Error(`Transaction with ID ${id} not found`);
+        }
+        if (transaction.status === 'APPROVED') {
+            throw new Error(`Transaction is already approved and cannot be updated.`);
+        }
+
+        const activityLog = transaction.activityLog || [];
+        activityLog.push({
+            timestamp: new Date(),
+            userId: updatedBy,
+            action: 'UPDATED',
+            comment: comment || 'Basic information updated'
+        });
+        const fieldsToSet: Partial<ITransaction> = {
+            date: new Date(basicData.date!),
+            voucherNo: basicData.voucherNo || transaction.voucherNo,
+            description: basicData.description,
+            checkedBy: basicData.checkedBy,
+            approvedBy: basicData.approvedBy,
+            activityLog: activityLog,
+            updatedAt: new Date()
+        };
+        return this.transactionModel.findByIdAndUpdate(
+            id,
+            { $set: fieldsToSet },
+            { new: true, runValidators: true }
+        );
+    }
+
+    async updateTransactionAccounts(id: string, updatedBy: string, details: ITransactionDetail[], comment: string): Promise<ITransaction | null> {
+        const transaction = await this.transactionModel.findById(id);
+        if (!transaction) {
+            throw new Error(`Transaction with ID ${id} not found`);
+        }
+        if (transaction.status === 'APPROVED') {
+            throw new Error(`Transaction is already approved and cannot be updated.`);
+        }
+
+        const activityLog = transaction.activityLog || [];
+        activityLog.push({
+            timestamp: new Date(),
+            userId: updatedBy,
+            action: 'UPDATED',
+            comment: comment || 'Transaction accounts updated'
+        });
+        const fieldsToSet: Partial<ITransaction> = {
+            amount: details.reduce((sum, detail) => sum + detail.amount, 0),
+            details: details,
+            activityLog: activityLog,
+            updatedAt: new Date()
+        };
+        return this.transactionModel.findByIdAndUpdate(
+            id,
+            { $set: fieldsToSet },
+            { new: true, runValidators: true }
+        );
+    }
+
+    async updateTransactionProps(id: string, updatedBy: string, props: Record<string, any>, comment: string): Promise<ITransaction | null> {
+        const transaction = await this.transactionModel.findById(id);
+        if (!transaction) {
+            throw new Error(`Transaction with ID ${id} not found`);
+        }
+        if (transaction.status === 'APPROVED') {
+            throw new Error(`Transaction is already approved and cannot be updated.`);
+        }
+
+        const activityLog = transaction.activityLog || [];
+        activityLog.push({
+            timestamp: new Date(),
+            userId: updatedBy,
+            action: 'UPDATED',
+            comment: comment || 'Transaction additional information updated'
+        });
+        const fieldsToSet: Partial<ITransaction> = {
+            props: props,
+            activityLog: activityLog,
+            updatedAt: new Date()
+        };
+        return this.transactionModel.findByIdAndUpdate(
+            id,
+            { $set: fieldsToSet },
+            { new: true, runValidators: true }
+        );
+    }
 }

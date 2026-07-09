@@ -1109,4 +1109,95 @@ export class TransactionController {
       });
     }
   }
+
+  @Authenticated()
+  @Patch('/:id/basic-info')
+  async updateTransactionBasicInfo(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { date, voucherNo, description, checkedBy, approvedBy, comment } = req.body;
+      const basicData = { date, voucherNo, description, checkedBy, approvedBy };
+      const loggedInUser = req.user;
+      const transaction = await new TransactionService(loggedInUser?.loggedInCompanyId!).updateTransactionBasicInfo(id, loggedInUser?.userId!, basicData, comment);
+
+      if (!transaction) {
+        res.status(404).json({
+          success: false,
+          message: 'Transaction not found',
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        message: 'Transaction basic information updated successfully',
+        data: transaction,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
+
+  @Authenticated()
+  @Patch('/:id/accounts')
+  async updateTransactionAccounts(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { details, comment } = req.body;
+      const loggedInUser = req.user;
+      const transaction = await new TransactionService(loggedInUser?.loggedInCompanyId!).updateTransactionAccounts(id, loggedInUser?.userId!, details, comment);
+
+      if (!transaction) {
+        res.status(404).json({
+          success: false,
+          message: 'Transaction not found',
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        message: 'Transaction accounts updated successfully',
+        data: transaction,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
+
+  @Authenticated()
+  @Patch('/:id/additional-info')
+  async updateTransactionProps(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { props, comment } = req.body;
+      const loggedInUser = req.user;
+      const transaction = await new TransactionService(loggedInUser?.loggedInCompanyId!).updateTransactionProps(id, loggedInUser?.userId!, props, comment);
+
+      if (!transaction) {
+        res.status(404).json({
+          success: false,
+          message: 'Transaction not found',
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        message: 'Transaction additional information updated successfully',
+        data: transaction,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
 }
