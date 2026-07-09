@@ -33,8 +33,12 @@ export interface ITransaction extends Document {
     attachments: ITransactionAttachment[];
     status: string;
     createdBy: string;
-    checkedBy: string[];
-    approvedBy: string[];
+    checkedBy?: string[];
+    checked?: boolean;
+    checkedAt?: Date;
+    approvedBy?: string[];
+    approved?: boolean;
+    approvedAt?: Date;
     props: Record<string, any>;
     activityLog: ITransactionActivityLog[];
     createdAt: Date;
@@ -116,10 +120,26 @@ const transactionSchema = new Schema<ITransaction>(
             ref: "User",   // <-- this tells Mongoose the collection/model
             default: [],
         },
+        checked: {
+            type: Boolean,
+            default: false,
+        },
+        checkedAt: {
+            type: Date,
+            default: null,
+        },
         approvedBy: {
             type: [String],
             ref: "User",   // <-- this tells Mongoose the collection/model
             default: [],
+        },
+        approved: {
+            type: Boolean,
+            default: false,
+        },
+        approvedAt: {
+            type: Date,
+            default: null,
         },
         props: {
             type: Map,

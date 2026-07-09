@@ -75,7 +75,9 @@ export class TransactionService {
     }
 
     async searchTransactions(searchParams: SearchTransactionParams): Promise<TransactionDto[]> {
-        const matchConditions: Record<string, any> = {};
+        const matchConditions: Record<string, any> = {
+            status: { $ne: 'DELETED' }  // Exclude deleted transactions
+        };
         if (searchParams.dateFrom || searchParams.dateTo) {
             matchConditions.date = {};
             if (searchParams.dateFrom) {
@@ -149,7 +151,7 @@ export class TransactionService {
      * Get all transactions
      */
     async getAllTransactions(): Promise<ITransaction[]> {
-        return this.transactionModel.find();
+        return this.transactionModel.find({ status: { $ne: 'DELETED' } }).sort({ date: -1 });
     }
 
     /**
@@ -385,5 +387,151 @@ export class TransactionService {
             { $project: { _id: 0, name: '$_id' } }
         ]);
         return billFors.map(billFor => billFor.name);
+    }
+
+    async sendToCheckTransaction(id: string, sentByUserId: string, comment: string, checkedBy: string[] = []): Promise<ITransaction | null> {
+        const transaction = await this.transactionModel.findById(id);
+        if (!transaction) {
+            throw new Error(`Transaction with ID ${id} not found`);
+        }
+
+        const activityLog = transaction.activityLog || [];
+        activityLog.push({
+            timestamp: new Date(),
+            userId: sentByUserId,
+            action: 'SENT_FOR_CHECK',
+            comment: comment || 'Transaction sent for checking'
+        });
+        const fieldsToSet: Partial<ITransaction> = {
+            status: 'PENDING_FOR_CHECKING',
+            checkedBy: checkedBy.length > 0 ? checkedBy : transaction.checkedBy || [],
+            activityLog: activityLog,
+            updatedAt: new Date()
+        };
+        return this.transactionModel.findByIdAndUpdate(
+            id,
+            { $set: fieldsToSet },
+            { new: true, runValidators: true }
+        );
+    }
+
+    async checkTransaction(id: string, checkedByUserId: string, comment: string, approvedBy: string[] = []): Promise<ITransaction | null> {
+        const transaction = await this.transactionModel.findById(id);
+        if (!transaction) {
+            throw new Error(`Transaction with ID ${id} not found`);
+        }
+        const checkedBy = transaction.checkedBy || [];
+        if (!checkedBy.includes(checkedByUserId)) {
+            checkedBy.push(checkedByUserId);
+        }
+        const activityLog = transaction.activityLog || [];
+        activityLog.push({
+            timestamp: new Date(),
+            userId: checkedByUserId,
+            action: 'CHECKED',
+            comment: comment || 'Transaction checked'
+        });
+        const fieldsToSet: Partial<ITransaction> = {
+            checked: true,
+            checkedAt: new Date(),
+            status: 'PENDING_FOR_APPROVAL',
+            checkedBy: checkedBy,
+            approvedBy: approvedBy.length > 0 ? approvedBy : transaction.approvedBy || [],
+            activityLog: activityLog,
+            updatedAt: new Date()
+        };
+        return this.transactionModel.findByIdAndUpdate(
+            id,
+            { $set: fieldsToSet },
+            { new: true, runValidators: true }
+        );
+    }
+
+    async approveTransaction(id: string, approvedByUserId: string, comment: string): Promise<ITransaction | null> {
+        const transaction = await this.transactionModel.findById(id);
+        if (!transaction) {
+            throw new Error(`Transaction with ID ${id} not found`);
+        }
+        const approvedBy = transaction.approvedBy || [];
+        if (!approvedBy.includes(approvedByUserId)) {
+            approvedBy.push(approvedByUserId);
+        }
+        const activityLog = transaction.activityLog || [];
+        activityLog.push({
+            timestamp: new Date(),
+            userId: approvedByUserId,
+            action: 'APPROVED',
+            comment: comment || 'Transaction approved'
+        });
+        const fieldsToSet: Partial<ITransaction> = {
+            approved: true,
+            approvedAt: new Date(),
+            status: 'APPROVED',
+            approvedBy: approvedBy,
+            activityLog: activityLog,
+            updatedAt: new Date()
+        };
+        return this.transactionModel.findByIdAndUpdate(
+            id,
+            { $set: fieldsToSet },
+            { new: true, runValidators: true }
+        );
+    }
+
+    async sendToReviewTransaction(id: string, sentByUserId: string, comment: string): Promise<ITransaction | null> {
+        const transaction = await this.transactionModel.findById(id);
+        if (!transaction) {
+            throw new Error(`Transaction with ID ${id} not found`);
+        }
+
+        const activityLog = transaction.activityLog || [];
+        activityLog.push({
+            timestamp: new Date(),
+            userId: sentByUserId,
+            action: 'SENT_FOR_REVIEW',
+            comment: comment || 'Transaction sent for review'
+        });
+        const fieldsToSet: Partial<ITransaction> = {
+            checked: false,
+            checkedAt: undefined,
+            approved: false,
+            approvedAt: undefined,
+            status: 'PENDING_FOR_REVIEW',
+            activityLog: activityLog,
+            updatedAt: new Date()
+        };
+        return this.transactionModel.findByIdAndUpdate(
+            id,
+            { $set: fieldsToSet },
+            { new: true, runValidators: true }
+        );
+    }
+
+    async markTransactionAsDeleted(id: string, deletedByUserId: string, comment: string): Promise<ITransaction | null> {
+        const transaction = await this.transactionModel.findById(id);
+        if (!transaction) {
+            throw new Error(`Transaction with ID ${id} not found`);
+        }
+        if (transaction.status === 'APPROVED') {
+            throw new Error(`Transaction is already approved and cannot be deleted.`);
+        }
+
+        const activityLog = transaction.activityLog || [];
+        activityLog.push({
+            timestamp: new Date(),
+            userId: deletedByUserId,
+            action: 'DELETED',
+            comment: comment || 'Transaction marked as deleted'
+        });
+        const fieldsToSet: Partial<ITransaction> = {
+            status: 'DELETED',
+            activityLog: activityLog,
+            updatedAt: new Date()
+        };
+        return this.transactionModel.findByIdAndUpdate(
+            id,
+            { $set: fieldsToSet },
+            { new: true, runValidators: true }
+        );
     }
 }

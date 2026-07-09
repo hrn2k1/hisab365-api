@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Controller, Get, Post, Put, Delete, Authenticated } from '../decorators';
+import { Controller, Get, Post, Put, Delete, Authenticated, Patch } from '../decorators';
 import { TransactionService } from '../services/TransactionService';
 import { SearchTransactionParams } from '../types/SearchTransactionParams';
 import { ITransactionDetail } from '../models/Transaction';
@@ -806,7 +806,7 @@ export class TransactionController {
         activityLog: [{
           timestamp: new Date(),
           userId: creditTransactionData.createdBy || req.user?.userId,
-          action: 'CREATE',
+          action: 'CREATED',
           comment: 'Transaction created',
         }],
       }
@@ -859,7 +859,7 @@ export class TransactionController {
         activityLog: [{
           timestamp: new Date(),
           userId: debitTransactionData.createdBy || req.user?.userId,
-          action: 'CREATE',
+          action: 'CREATED',
           comment: 'Transaction created',
         }],
       }
@@ -912,7 +912,7 @@ export class TransactionController {
         activityLog: [{
           timestamp: new Date(),
           userId: journalTransactionData.createdBy || req.user?.userId,
-          action: 'CREATE',
+          action: 'CREATED',
           comment: 'Transaction created',
         }],
       }
@@ -963,7 +963,11 @@ export class TransactionController {
   async deleteTransaction(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const transaction = await new TransactionService(req.user?.loggedInCompanyId!).deleteTransaction(id);
+      const { hard } = req.query;
+      const { comment } = req.body;
+      const transaction = hard === 'true' || hard === '1'
+        ? await new TransactionService(req.user?.loggedInCompanyId!).deleteTransaction(id)
+        : await new TransactionService(req.user?.loggedInCompanyId!).markTransactionAsDeleted(id, req.user?.userId!, comment);
 
       if (!transaction) {
         res.status(404).json({
@@ -976,6 +980,126 @@ export class TransactionController {
       res.json({
         success: true,
         message: 'Transaction deleted successfully',
+        data: transaction,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
+
+  @Authenticated()
+  @Patch('/:id/sent-to-check')
+  async sendToCheckTransaction(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { sentByUserId, comment, checkedBy } = req.body;
+      const loggedInUser = req.user;
+      const transaction = await new TransactionService(loggedInUser?.loggedInCompanyId!).sendToCheckTransaction(id, sentByUserId || loggedInUser?.userId, comment, checkedBy);
+
+      if (!transaction) {
+        res.status(404).json({
+          success: false,
+          message: 'Transaction not found',
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        message: 'Transaction sent for checking successfully',
+        data: transaction,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
+
+  @Authenticated()
+  @Patch('/:id/checked')
+  async checkTransaction(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { checkedByUserId, comment, approvedBy } = req.body;
+      const loggedInUser = req.user;
+      const transaction = await new TransactionService(loggedInUser?.loggedInCompanyId!).checkTransaction(id, checkedByUserId || loggedInUser?.userId, comment, approvedBy);
+
+      if (!transaction) {
+        res.status(404).json({
+          success: false,
+          message: 'Transaction not found',
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        message: 'Transaction checked successfully',
+        data: transaction,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
+
+  @Authenticated()
+  @Patch('/:id/approved')
+  async approveTransaction(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { approvedByUserId, comment } = req.body;
+      const loggedInUser = req.user;
+      const transaction = await new TransactionService(loggedInUser?.loggedInCompanyId!).approveTransaction(id, approvedByUserId || loggedInUser?.userId, comment);
+
+      if (!transaction) {
+        res.status(404).json({
+          success: false,
+          message: 'Transaction not found',
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        message: 'Transaction approved successfully',
+        data: transaction,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
+
+  @Authenticated()
+  @Patch('/:id/sent-to-review')
+  async sendToReviewTransaction(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { sentByUserId, comment } = req.body;
+      const loggedInUser = req.user;
+      const transaction = await new TransactionService(loggedInUser?.loggedInCompanyId!).sendToReviewTransaction(id, sentByUserId || loggedInUser?.userId, comment);
+
+      if (!transaction) {
+        res.status(404).json({
+          success: false,
+          message: 'Transaction not found',
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        message: 'Transaction sent for review successfully',
         data: transaction,
       });
     } catch (error) {
