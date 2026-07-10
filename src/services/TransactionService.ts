@@ -1,9 +1,10 @@
-import Transaction, { ITransaction, ITransactionActivityLog, ITransactionDetail } from '../models/Transaction';
+import Transaction, { ITransaction, ITransactionActivityLog, ITransactionAttachment, ITransactionDetail } from '../models/Transaction';
 import Account, { IAccount } from '../models/Account';
 import mongoose, { Model } from 'mongoose';
 import { isTransactionSupported } from '../config/database';
 import { TransactionDto } from '../types/TransactionDto';
 import { SearchTransactionParams } from '../types/SearchTransactionParams';
+import { randomUUID } from 'crypto';
 
 export class TransactionService {
     private companyId: string;
@@ -169,14 +170,14 @@ export class TransactionService {
             transaction.details = transaction.details.map(detail => {
                 return {
                     ...detail,
-                    accountId: detail.accountId._id,
+                    accountId: detail.accountId?._id,
                     account: detail.accountId
                 } as unknown as ITransactionDetail;
             });
             transaction.activityLog = transaction.activityLog.map(log => {
                 return {
                     ...log,
-                    userId: log.userId._id,
+                    userId: log.userId?._id,
                     user: log.userId
                 } as unknown as ITransactionActivityLog;
             });
@@ -614,6 +615,75 @@ export class TransactionService {
         });
         const fieldsToSet: Partial<ITransaction> = {
             props: props,
+            activityLog: activityLog,
+            updatedAt: new Date()
+        };
+        return this.transactionModel.findByIdAndUpdate(
+            id,
+            { $set: fieldsToSet },
+            { new: true, runValidators: true }
+        );
+    }
+
+    async addTransactionAttachment(id: string, addedBy: string, attachment: ITransactionAttachment): Promise<ITransaction | null> {
+        const transaction = await this.transactionModel.findById(id);
+        if (!transaction) {
+            throw new Error(`Transaction with ID ${id} not found`);
+        }
+        if (transaction.status === 'APPROVED') {
+            throw new Error(`Transaction is already approved and cannot be updated.`);
+        }
+
+        const activityLog = transaction.activityLog || [];
+        activityLog.push({
+            timestamp: new Date(),
+            userId: addedBy,
+            action: 'ATTACHMENT_ADDED',
+            comment: 'Transaction attachment added'
+        });
+        const attachments = transaction.attachments || [];
+        attachments.push({
+            id: attachment.id || randomUUID(),
+            fileName: attachment.fileName,
+            fileType: attachment.fileType,
+            fileSize: attachment.fileSize,
+            url: attachment.url
+        });
+        const fieldsToSet: Partial<ITransaction> = {
+            attachments: attachments,
+            activityLog: activityLog,
+            updatedAt: new Date()
+        };
+        return this.transactionModel.findByIdAndUpdate(
+            id,
+            { $set: fieldsToSet },
+            { new: true, runValidators: true }
+        );
+    }
+
+    async removeTransactionAttachment(id: string, removedBy: string, attachmentId: string): Promise<ITransaction | null> {
+        const transaction = await this.transactionModel.findById(id);
+        if (!transaction) {
+            throw new Error(`Transaction with ID ${id} not found`);
+        }
+        if (transaction.status === 'APPROVED') {
+            throw new Error(`Transaction is already approved and cannot be updated.`);
+        }
+
+        const activityLog = transaction.activityLog || [];
+        activityLog.push({
+            timestamp: new Date(),
+            userId: removedBy,
+            action: 'ATTACHMENT_REMOVED',
+            comment: 'Transaction attachment removed'
+        });
+        const attachments = transaction.attachments || [];
+        const attachmentIndex = attachments.findIndex(att => att.id === attachmentId);
+        if (attachmentIndex !== -1) {
+            attachments.splice(attachmentIndex, 1);
+        }
+        const fieldsToSet: Partial<ITransaction> = {
+            attachments: attachments,
             activityLog: activityLog,
             updatedAt: new Date()
         };

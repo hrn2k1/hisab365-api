@@ -9,7 +9,7 @@ export interface ITransactionDetail {
 }
 
 export interface ITransactionAttachment {
-    id: string;
+    id?: string;
     fileName: string;
     fileType: string;
     fileSize: number;

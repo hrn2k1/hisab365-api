@@ -1,8 +1,11 @@
 import { Request, Response } from 'express';
-import { Controller, Get, Post, Put, Delete, Authenticated, Patch } from '../decorators';
+import { Controller, Get, Post, Put, Delete, Authenticated, Patch, Use } from '../decorators';
 import { TransactionService } from '../services/TransactionService';
 import { SearchTransactionParams } from '../types/SearchTransactionParams';
 import { ITransactionDetail } from '../models/Transaction';
+import { singleFileUpload } from '../middlewares/uploadMiddleware';
+import CloudinaryService from '../services/storage/CloudinaryService';
+import { randomUUID } from 'crypto';
 
 /**
  * @swagger
@@ -1200,4 +1203,81 @@ export class TransactionController {
       });
     }
   }
+
+  @Authenticated()
+  @Post('/:id/attachments')
+  @Use(singleFileUpload)
+  async AddAttachment(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.file) {
+        res.status(400).json({
+          success: false,
+          message: 'No file provided. Use multipart/form-data with field name "file".',
+        });
+        return;
+      }
+      const { id } = req.params;
+      const isImage = req.file.mimetype.startsWith('image/');
+      const attachmentId = randomUUID();
+      const publicId = `${id}_${attachmentId}`;
+
+      const uploadOptions = {
+        folder: `hisab365/transactions/${id}`,
+        public_id: publicId,
+      };
+
+      const cloudinaryService = new CloudinaryService();
+
+      const result = isImage
+        ? await cloudinaryService.uploadImage(req.file.buffer, uploadOptions)
+        : await cloudinaryService.uploadFile(req.file.buffer, {
+          ...uploadOptions,
+          resource_type: 'raw',
+        });
+
+      await new TransactionService(req.user?.loggedInCompanyId!).addTransactionAttachment(id, req.user?.userId!, {
+        id: attachmentId,
+        fileName: req.file.originalname,
+        fileType: req.file.mimetype,
+        fileSize: req.file.size,
+        url: result.url,
+      });
+      res.status(201).json({
+        success: true,
+        data: {
+          ...result,
+          originalName: req.file.originalname,
+          mimeType: req.file.mimetype,
+          transactionId: id,
+        },
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to upload file',
+      });
+    }
+  }
+
+  @Authenticated()
+  @Delete('/:id/attachments/:attachmentId')
+  async RemoveAttachment(req: Request, res: Response): Promise<void> {
+    try {
+      const { id, attachmentId } = req.params;
+      const publicId = `${id}_${attachmentId}`;
+      const cloudinaryService = new CloudinaryService();
+      await cloudinaryService.deleteFile(publicId);
+      await new TransactionService(req.user?.loggedInCompanyId!).removeTransactionAttachment(id, req.user?.userId!, attachmentId);
+      res.json({
+        success: true,
+        message: 'Attachment removed successfully',
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to remove file',
+      });
+    }
+  }
+
 }
