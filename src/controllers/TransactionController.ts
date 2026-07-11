@@ -696,8 +696,18 @@ export class TransactionController {
   @Get()
   async getAllTransactions(req: Request, res: Response): Promise<void> {
     try {
-      const transactions = await new TransactionService(req.user?.loggedInCompanyId!).getAllTransactions();
-
+      const { accountId, top } = req.query;
+      const loggedInUser = req.user;
+      let transactions: any[];
+      if (accountId) {
+        transactions = await new TransactionService(loggedInUser?.loggedInCompanyId!).searchTransactions({
+          searchType: 'accountTransactions',
+          accountId: accountId as string,
+          top: top ? parseInt(top as string, 100) : undefined,
+        });
+      } else {
+        transactions = await new TransactionService(loggedInUser?.loggedInCompanyId!).getAllTransactions();
+      }
       res.json({
         success: true,
         data: transactions,

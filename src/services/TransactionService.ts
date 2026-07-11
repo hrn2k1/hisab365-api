@@ -111,6 +111,9 @@ export class TransactionService {
                 matchConditions[`props.${key}`] = { $regex: new RegExp(value as string, 'i') };
             }
         }
+        if (searchParams.accountId) {
+            matchConditions['details.accountId'] = searchParams.accountId;
+        }
         let projectionFields: any = {
             date: 1,
             voucherType: 1,
@@ -134,11 +137,28 @@ export class TransactionService {
                 description: 1,
                 billFor: '$props.BILL_FOR'
             };
-
+        } else if (searchParams.searchType === 'accountTransactions') {
+            projectionFields = {
+                date: 1,
+                voucherNo: 1,
+                voucherType: 1,
+                status: 1,
+                description: 1,
+                account: {
+                    $first: {
+                        $filter: {
+                            input: '$details',
+                            as: 'detail',
+                            cond: { $eq: ['$$detail.accountId', searchParams.accountId] }
+                        }
+                    }
+                },
+                props: 1
+            };
             return this.transactionModel.aggregate<TransactionDto>([
                 { $match: matchConditions },
                 { $project: projectionFields },
-                { $sort: { date: -1 } }
+                { $sort: { date: 1 } }
             ]);
         }
         return this.transactionModel.aggregate<TransactionDto>([
