@@ -175,6 +175,49 @@ export class TransactionService {
         return this.transactionModel.find({ status: { $ne: 'DELETED' } }).sort({ date: -1 });
     }
 
+    async getBills(accountId: string): Promise<any[]> {
+        const matchConditions: Record<string, any> = {
+            status: { $ne: 'DELETED' },  // Exclude deleted transactions
+            'details.accountId': accountId,
+            voucherType: 'JOURNAL'
+        };
+
+        return this.transactionModel.aggregate<TransactionDto>([
+            { $match: matchConditions },
+            {
+                $project: {
+                    account: {
+                        $first: {
+                            $filter: {
+                                input: "$details",
+                                as: "detail",
+                                cond: {
+                                    $eq: [
+                                        "$$detail.accountId",
+                                        "1e6448c2-223d-4fa9-a36d-797d9462c8dd"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    voucherNo: 1,
+                    billFor: "$props.BILL_FOR"
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    billId: "$_id",
+                    billNo: "$voucherNo",
+                    billFor: 1,
+                    billAmount: "$account.amount",
+                    billType: "$account.type"
+                }
+            },
+            { $sort: { date: 1 } }
+        ]);
+    }
+
     /**
      * Get transaction by ID
      */
