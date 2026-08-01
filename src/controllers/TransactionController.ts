@@ -672,6 +672,30 @@ import { randomUUID } from 'crypto';
 
 @Controller('/transactions')
 export class TransactionController {
+  @Authenticated()
+  @Get('/new-voucher-no')
+  async getNewVoucherNo(req: Request, res: Response): Promise<void> {
+    try {
+      const { prefix } = req.query;
+      if (typeof prefix !== 'string') {
+        res.status(400).json({
+          success: false,
+          message: 'Prefix query parameter is required',
+        });
+        return;
+      }
+      const newVoucherNo = await new TransactionService(req.user?.loggedInCompanyId!).getNewVoucherNo(prefix);
+      res.json({
+        success: true,
+        data: newVoucherNo,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
 
   @Authenticated()
   @Post('/search')
@@ -1289,5 +1313,4 @@ export class TransactionController {
       });
     }
   }
-
 }
