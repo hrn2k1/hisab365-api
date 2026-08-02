@@ -146,4 +146,22 @@ export class AccountService {
     }
     return await this.accountModel.find(filter).sort({ createdAt: -1 });
   }
+
+
+  async updateAccountProps(id: string, updatedBy: string, props: Record<string, any>, comment: string): Promise<IAccount | null> {
+    const account = await this.accountModel.findById(id);
+    if (!account) {
+      throw new Error(`account with ID ${id} not found`);
+    }
+
+    const fieldsToSet: Partial<IAccount> = {
+      props: props,
+      updatedAt: new Date()
+    };
+    return this.accountModel.findByIdAndUpdate(
+      id,
+      { $set: fieldsToSet },
+      { new: true, runValidators: true }
+    );
+  }
 }

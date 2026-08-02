@@ -690,4 +690,34 @@ export class AccountController {
       data: userResponse,
     });
   }
+
+  @Authenticated()
+  @Patch('/:id/props')
+  async updateAccountProps(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { props, comment } = req.body;
+      const loggedInUser = req.user;
+      const account = await new AccountService(loggedInUser?.loggedInCompanyId!).updateAccountProps(id, loggedInUser?.userId!, props, comment);
+
+      if (!account) {
+        res.status(404).json({
+          success: false,
+          message: 'account not found',
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        message: 'Account additional information updated successfully',
+        data: account,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
 }
