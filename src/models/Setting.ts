@@ -1,11 +1,35 @@
 import { Schema, model, Document } from 'mongoose';
 
+export interface OrganizationType {
+    label: string;
+    color?: string;
+}
+
+export interface AccountType {
+    label: string;
+    color?: string;
+    nature?: 1 | -1;
+    lockInAccounts?: boolean;
+}
+
+export interface VoucherType {
+    label: string;
+    short?: string;
+    color?: string;
+    voucherNoPrefix?: string;
+}
+
+export interface VoucherStatus {
+    label: string;
+    color?: string;
+}
+
 export interface ISetting extends Document {
     _id: string;
-    organizationTypes: { [key: string]: string | { label: string } & Record<string, any> };
-    accountTypes: { [key: string]: string | { label: string } & Record<string, any> };
-    voucherTypes: { [key: string]: string | { label: string } & Record<string, any> };
-    voucherStatuses: { [key: string]: string | { label: string } & Record<string, any> };
+    organizationTypes: OrganizationType | Record<string, any>;
+    accountTypes: AccountType | Record<string, any>;
+    voucherTypes: VoucherType | Record<string, any>;
+    voucherStatuses: VoucherStatus | Record<string, any>;
 }
 
 const settingSchema = new Schema<ISetting>(

@@ -7,6 +7,8 @@ export class Config {
   static readonly MONGODB_DIRECT_URI = process.env.MONGODB_DIRECT_URI || '';
   static readonly DNS_SERVERS = process.env.DNS_SERVERS || '';
   static readonly API_PREFIX = process.env.API_PREFIX || '/api';
+  static readonly CRON_ENABLED = process.env.CRON_ENABLED || 'true';
+  static readonly CRON_TZ = process.env.CRON_TZ || 'UTC';
   static readonly CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || '';
   static readonly CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || '';
   static readonly CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || '';

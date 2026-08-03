@@ -17,6 +17,7 @@ import { CompanyController } from './controllers/CompanyController';
 import { MiscController } from './controllers/MiscController';
 import { StorageController } from './controllers/StorageController';
 import { CustomFieldController } from './controllers/CustomFieldController';
+// import CronJobService from './services/CronJobService';
 
 class App {
   public app: Express;
@@ -120,6 +121,9 @@ class App {
     try {
       // Connect to database
       await connectDatabase();
+
+      // Start cron schedules
+      // CronJobService.start();
 
       // Start server
       this.app.listen(this.port, () => {
