@@ -867,17 +867,17 @@ export class UserController {
   @Post('/search')
   async searchUsers(req: Request, res: Response): Promise<void> {
     try {
-      const { name, email, contactNumber } = req.body ?? {};
+      const { name, email, contactNumber, companyId } = req.body ?? {};
 
-      if (!name && !email && !contactNumber) {
+      if (!name && !email && !contactNumber && !companyId) {
         res.status(400).json({
           success: false,
-          message: 'At least one search criteria (name, email, or contactNumber) is required',
+          message: 'At least one search criteria (name, email, contactNumber, or companyId) is required',
         });
         return;
       }
 
-      const users = await this.userService.searchUsers(name, email, contactNumber);
+      const users = await this.userService.searchUsers(name, email, contactNumber, companyId);
 
       res.json({
         success: true,

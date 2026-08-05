@@ -333,7 +333,7 @@ export class UserService {
    * Search users by name, email, or contact number (OR logic)
    * Returns users and matched criteria string
    */
-  async searchUsers(name?: string, email?: string, contactNumber?: string): Promise<IUser[] | any[]> {
+  async searchUsers(name?: string, email?: string, contactNumber?: string, companyId?: string): Promise<IUser[] | any[]> {
     // Helper to escape regex special characters
     function escapeRegex(str: string) {
       return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -344,7 +344,7 @@ export class UserService {
       or.push({ name: { $regex: escapeRegex(name), $options: 'i' } });
     }
     if (email) {
-      or.push({ email: { $regex: escapeRegex(email), $options: 'i' } });
+      or.push({ email: { $regex: '^' + escapeRegex(email) + '$', $options: 'i' } });
     }
     if (contactNumber) {
       or.push({ contactNumber: { $regex: escapeRegex(contactNumber), $options: 'i' } });
@@ -363,7 +363,8 @@ export class UserService {
       } else if (name && user.name?.toLowerCase().includes(name.toLowerCase())) {
         matchedCriteria = 'name';
       }
-      return { ...user.toObject(), password: undefined, matchedCriteria };
+      const membershipIndex = user.memberships?.findIndex(m => m.companyId === companyId);
+      return { ...user.toObject(), password: undefined, matchedCriteria, isCompanyUser: membershipIndex !== undefined && membershipIndex !== -1 };
     });
 
     return usersWithCriteria;
