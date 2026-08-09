@@ -223,7 +223,7 @@ export class TransactionService {
      */
     async getTransactionById(id: string): Promise<ITransaction | null> {
         const userFields = 'name email contactNumber photo';
-        const accountFields = 'name currentBalance';
+        const accountFields = 'name type currentBalance status';
         let transaction = await this.transactionModel.findById(id).populate('details.accountId', accountFields)
             .populate('createdBy', userFields).populate('checkedBy', userFields).populate('approvedBy', userFields)
             .populate('activityLog.userId', userFields)
