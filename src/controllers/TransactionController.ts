@@ -417,6 +417,8 @@ import { randomUUID } from 'crypto';
  *               - description
  *               - details
  *               - status
+ *               - billFor
+ *               - dueDate
  *               - createdBy
  *             properties:
  *               date:
@@ -455,6 +457,11 @@ import { randomUUID } from 'crypto';
  *                       type: string
  *               status:
  *                 type: string
+ *               billFor:
+ *                 type: string
+ *               dueDate:
+ *                 type: string
+ *                 format: date
  *               createdBy:
  *                 type: string
  *               checkedBy:
@@ -933,6 +940,14 @@ export class TransactionController {
         amount: detail.amount,
       }));
 
+      const props = journalTransactionData.props || {};
+      if (journalTransactionData.billFor) {
+        props['BILL_FOR'] = journalTransactionData.billFor;
+      }
+      if (journalTransactionData.dueDate) {
+        props['DUE_DATE'] = journalTransactionData.dueDate;
+      }
+
       const transactionData = {
         date: journalTransactionData.date,
         voucherNo: journalTransactionData.voucherNo,
@@ -945,7 +960,7 @@ export class TransactionController {
         createdBy: journalTransactionData.createdBy || req.user?.userId,
         checkedBy: journalTransactionData.checkedBy || [],
         approvedBy: journalTransactionData.approvedBy || [],
-        props: journalTransactionData.props || {},
+        props: props,
         activityLog: [{
           timestamp: new Date(),
           userId: journalTransactionData.createdBy || req.user?.userId,
