@@ -3,6 +3,7 @@ import { Controller, Get, Post, Put, Patch, Delete, Authenticated } from '../dec
 import { UserService } from '../services/UserService';
 import { CompanyService } from '../services/CompanyService';
 import { hashPassword } from '../utils/passwordUtil';
+import { AccountService } from '../services/AccountService';
 
 /**
  * @swagger
@@ -1026,6 +1027,35 @@ export class UserController {
       res.json({ success: true, message: 'Password reset successfully' });
     } catch (error) {
       res.status(400).json({ success: false, message: error instanceof Error ? error.message : 'An error occurred' });
+    }
+  }
+
+  @Authenticated()
+  @Get('/:id/accounts')
+  async getUserAccounts(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const user = await this.userService.getUserById(id);
+
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          message: 'User not found',
+        });
+        return;
+      }
+      const accountService = new AccountService(req.user?.loggedInCompanyId!);
+      const accounts = await accountService.getAccountsByUserId(id);
+
+      res.json({
+        success: true,
+        data: accounts,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
     }
   }
 }
