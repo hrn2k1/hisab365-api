@@ -769,4 +769,44 @@ export class TransactionService {
         const newNumericPart = (parseInt(numericPart, 10) + 1).toString().padStart(numericPart.length, '0');
         return `${prefix}${newNumericPart}`;
     }
+
+    async getAccountTransactionsSummary(accountId: string, nature: number, date: Date, includeDraft?: boolean): Promise<number> {
+        const matchConditions: Record<string, any> = {
+            status: { $ne: 'DELETED' },  // Exclude deleted transactions
+            'details.accountId': accountId,
+            date: { $lte: date }
+        };
+        if (!includeDraft) {
+            matchConditions.status.$nin = ['DELETED', 'DRAFT'];
+        }
+
+        const result = await this.transactionModel.aggregate<{ _id: null; totalAmount: number }>([
+            { $unwind: '$details' },
+            { $match: matchConditions },
+            {
+                $lookup: {
+                    from: 'accounts',
+                    localField: 'details.accountId',
+                    foreignField: '_id',
+                    as: 'account'
+                }
+            },
+            { $unwind: '$account' },
+            {
+                $group: {
+                    _id: null,
+                    totalAmount: {
+                        $sum: {
+                            $multiply: [
+                                "$details.amount",
+                                { $cond: [{ $eq: ["$details.type", "Dr"] }, 1, -1] },
+                                nature
+                            ]
+                        }
+                    }
+                }
+            }
+        ]);
+        return result.length > 0 ? result[0].totalAmount : 0;
+    }
 }

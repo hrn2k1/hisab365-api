@@ -727,14 +727,16 @@ export class TransactionController {
   @Get()
   async getAllTransactions(req: Request, res: Response): Promise<void> {
     try {
-      const { accountId, top } = req.query;
+      const { accountId, top, dateFrom, dateTo } = req.query;
       const loggedInUser = req.user;
       let transactions: any[];
       if (accountId) {
         transactions = await new TransactionService(loggedInUser?.loggedInCompanyId!).searchTransactions({
           searchType: 'accountTransactions',
           accountId: accountId as string,
-          top: top ? parseInt(top as string, 100) : undefined,
+          top: top ? parseInt(top as string, 10) : undefined,
+          dateFrom: dateFrom ? new Date(dateFrom as string) : undefined,
+          dateTo: dateTo ? new Date(dateTo as string) : undefined,
         });
       } else {
         transactions = await new TransactionService(loggedInUser?.loggedInCompanyId!).getAllTransactions();

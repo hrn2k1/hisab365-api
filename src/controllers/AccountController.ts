@@ -1,8 +1,9 @@
-import e, { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { Controller, Get, Post, Put, Delete, Authenticated, Patch } from '../decorators/index';
 import { AccountService } from '../services/AccountService';
 import { UserService } from '../services/UserService';
-import { randomUUID } from 'crypto';
+import { TransactionService } from '../services/TransactionService';
+import { Setting } from '../models/Setting';
 
 /**
  * @swagger
@@ -720,5 +721,27 @@ export class AccountController {
         message: error instanceof Error ? error.message : 'An error occurred',
       });
     }
+  }
+
+  @Get('/:id/balance')
+  @Authenticated()
+  async getAccountBalance(req: Request, res: Response): Promise<void> {
+    const { id } = req.params;
+    const { date } = req.query;
+    const dateUpTo = new Date(date as string);
+    dateUpTo.setDate(dateUpTo.getDate() - 1); // Add one day to include the entire day in the query
+    dateUpTo.setHours(23, 59, 59, 999);
+    const accountService = new AccountService(req.user?.loggedInCompanyId!);
+    const transactionService = new TransactionService(req.user?.loggedInCompanyId!);
+    const account = await accountService.getAccountById(id);
+    if (!account) {
+      res.status(404).json({ success: false, message: 'Account not found' });
+      return;
+    }
+    const setting = await Setting.findOne({}, { accountTypes: 1, _id: 0 }).lean();
+    const nature = ((setting as any)?.accountTypes || {})[account?.type || '']?.nature || 1;
+    const summary = await transactionService.getAccountTransactionsSummary(id, nature, dateUpTo, false);
+    account.currentBalance = (account.openingBalance || 0) + (summary || 0);
+    res.json({ success: true, data: account });
   }
 }
