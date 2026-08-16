@@ -5,7 +5,11 @@ import { getCompanyConnection } from '../config/database';
 export interface ITransactionDetail {
     accountId: string | any;
     type: 'Cr' | 'Dr';
+    qty?: number;
+    unit?: string;
+    unitPrice?: number;
     amount: number;
+    dueAmount?: number;
 }
 
 export interface ITransactionAttachment {
@@ -29,6 +33,7 @@ export interface ITransaction extends Document {
     voucherType: string | 'CREDIT' | 'DEBIT' | 'JOURNAL';
     amount: number;
     description: string;
+    transAccountId?: string;
     details: ITransactionDetail[];
     attachments: ITransactionAttachment[];
     status: string;
@@ -53,8 +58,12 @@ const transactionDetailSchema = new Schema<ITransactionDetail>({
         required: true
     },
     type: { type: String, enum: ['Cr', 'Dr'], required: true },
+    qty: { type: Number, required: false },
+    unit: { type: String, required: false },
+    unitPrice: { type: Number, required: false },
     amount: { type: Number, required: true },
-}, { _id: false });
+    dueAmount: { type: Number, required: false },
+}, { _id: true });
 
 const transactionAttachmentSchema = new Schema<ITransactionAttachment>({
     id: { type: String, required: true },
@@ -93,6 +102,11 @@ const transactionSchema = new Schema<ITransaction>(
         amount: {
             type: Number,
             required: true,
+        },
+        transAccountId: {
+            type: String,
+            ref: "Account",   // <-- this tells Mongoose the collection/model
+            required: false
         },
         description: {
             type: String,

@@ -11,6 +11,7 @@ export interface IAccount extends Document {
   remarks?: string;
   type: string;
   status?: string;
+  isInventory?: boolean;
   props?: Record<string, any>;
   createdAt: Date;
   updatedAt: Date;
@@ -58,6 +59,10 @@ const accountSchema = new Schema<IAccount>(
     status: {
       type: String,
       default: 'active',
+    },
+    isInventory: {
+      type: Boolean,
+      default: false,
     },
   },
   {

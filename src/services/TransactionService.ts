@@ -194,7 +194,7 @@ export class TransactionService {
                                 cond: {
                                     $eq: [
                                         "$$detail.accountId",
-                                        "1e6448c2-223d-4fa9-a36d-797d9462c8dd"
+                                        accountId
                                     ]
                                 }
                             }
@@ -224,12 +224,19 @@ export class TransactionService {
     async getTransactionById(id: string): Promise<ITransaction | null> {
         const userFields = 'name email contactNumber photo';
         const accountFields = 'name type currentBalance status';
-        let transaction = await this.transactionModel.findById(id).populate('details.accountId', accountFields)
+        let transaction = await this.transactionModel.findById(id)
+            .populate('transAccountId', accountFields)
+            .populate('details.accountId', accountFields)
             .populate('createdBy', userFields).populate('checkedBy', userFields).populate('approvedBy', userFields)
             .populate('activityLog.userId', userFields)
             .lean();
 
         if (transaction) {
+            if (transaction.transAccountId) {
+                (transaction as any).transAccount = transaction.transAccountId;
+                transaction.transAccountId = (transaction.transAccountId as any)?._id;
+            }
+
             transaction.details = transaction.details.map(detail => {
                 return {
                     ...detail,
