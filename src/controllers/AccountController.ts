@@ -206,7 +206,7 @@ export class AccountController {
   @Post()
   @Authenticated()
   async createAccount(req: Request, res: Response): Promise<void> {
-    const { name, type, status, openingBalance, openingBalanceDate, remarks, props } = req.body;
+    const { number, name, type, status, openingBalance, openingBalanceDate, openingQty, remarks, props } = req.body;
 
     if (!name || !type) {
       res.status(400).json({ success: false, message: 'Name and type are required' });
@@ -214,12 +214,15 @@ export class AccountController {
     }
 
     const account = await new AccountService(req.user?.loggedInCompanyId!).createAccount({
+      number,
       name,
       type,
       status: status || 'ACTIVE',
       openingBalance: openingBalance || 0,
       openingBalanceDate: openingBalanceDate || new Date(),
+      openingQty: openingQty || 0,
       currentBalance: openingBalance || 0,
+      currentQty: openingQty || 0,
       remarks: remarks || '',
       props: props || {},
     });
@@ -231,7 +234,7 @@ export class AccountController {
   @Authenticated()
   async updateAccount(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
-    const { name, type, status, openingBalance, openingBalanceDate, remarks, props } = req.body;
+    const { number, name, type, status, openingBalance, openingBalanceDate, openingQty, remarks, props } = req.body;
     let account = await new AccountService(req.user?.loggedInCompanyId!).getAccountById(id);
 
     if (!account) {
@@ -239,12 +242,16 @@ export class AccountController {
       return;
     }
     const currentBalance = (account.currentBalance || 0) + ((openingBalance || 0) - (account.openingBalance || 0));
+    const currentQty = (account.currentQty || 0) + ((openingQty || 0) - (account.openingQty || 0));
     account = await new AccountService(req.user?.loggedInCompanyId!).updateAccount(id, {
+      number,
       name,
       type,
       openingBalance,
       openingBalanceDate,
+      openingQty,
       currentBalance,
+      currentQty,
       remarks,
       props,
       status: status || 'ACTIVE',
@@ -263,7 +270,7 @@ export class AccountController {
   async patchAccount(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const { name, type, status, openingBalance, openingBalanceDate, remarks, props, userId } = req.body;
+      const { number, name, type, status, openingBalance, openingBalanceDate, openingQty, remarks, props, userId } = req.body;
       let account = await new AccountService(req.user?.loggedInCompanyId!).getAccountById(id);
 
       if (!account) {
@@ -271,15 +278,18 @@ export class AccountController {
         return;
       }
       const currentBalance = (account.currentBalance || 0) + ((openingBalance || 0) - (account.openingBalance || 0));
-
+      const currentQty = (account.currentQty || 0) + ((openingQty || 0) - (account.openingQty || 0));
       const updateData: Record<string, unknown> = {
+        ...(number !== undefined && { number }),
         ...(name !== undefined && { name }),
         ...(type !== undefined && { type }),
         ...(openingBalance !== undefined && { openingBalance }),
         ...(openingBalanceDate !== undefined && { openingBalanceDate }),
+        ...(openingQty !== undefined && { openingQty }),
         ...(remarks !== undefined && { remarks }),
         ...(props !== undefined && { props }),
         ...(currentBalance !== undefined && { currentBalance }),
+        ...(currentQty !== undefined && { currentQty }),
         ...(status !== undefined && { status }),
         ...(userId !== undefined && { userId }),
       };

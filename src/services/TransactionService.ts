@@ -771,7 +771,7 @@ export class TransactionService {
             { $sort: { voucherNo: -1 } },
             { $limit: 1 }
         ]);
-        const maxVoucherNo = result.length > 0 ? result[0].voucherNo : `${prefix}000`;
+        const maxVoucherNo = result.length > 0 ? result[0].voucherNo : `${prefix}0000`;
         const numericPart = maxVoucherNo.replace(prefix, '');
         const newNumericPart = (parseInt(numericPart, 10) + 1).toString().padStart(numericPart.length, '0');
         return `${prefix}${newNumericPart}`;

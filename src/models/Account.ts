@@ -4,14 +4,16 @@ import { getCompanyConnection } from '../config/database';
 
 export interface IAccount extends Document {
   _id: string;
+  number?: string;
   name: string;
   openingBalance: number;
+  openingQty?: number;
   openingBalanceDate?: Date;
   currentBalance: number;
+  currentQty: number;
   remarks?: string;
   type: string;
   status?: string;
-  isInventory?: boolean;
   props?: Record<string, any>;
   createdAt: Date;
   updatedAt: Date;
@@ -24,6 +26,9 @@ const accountSchema = new Schema<IAccount>(
       type: String,
       default: () => randomUUID(),
     },
+    number: {
+      type: String,
+    },
     name: {
       type: String,
       required: true,
@@ -33,10 +38,20 @@ const accountSchema = new Schema<IAccount>(
       required: true,
       default: 0,
     },
+    openingQty: {
+      type: Number,
+      required: false,
+      default: 0,
+    },
     openingBalanceDate: {
       type: Date,
     },
     currentBalance: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+    currentQty: {
       type: Number,
       required: true,
       default: 0,
@@ -59,10 +74,6 @@ const accountSchema = new Schema<IAccount>(
     status: {
       type: String,
       default: 'active',
-    },
-    isInventory: {
-      type: Boolean,
-      default: false,
     },
   },
   {

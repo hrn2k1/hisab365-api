@@ -38,7 +38,7 @@ export class AccountService {
    * Get accounts by types
    */
   async getAccountsByTypes(types: string[]): Promise<IAccount[]> {
-    return await this.accountModel.find({ type: { $in: types } }).sort({ createdAt: -1 });
+    return await this.accountModel.find({ type: { $in: types } }).sort({ number: 1, name: 1 });
   }
 
   /**
