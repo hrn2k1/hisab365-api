@@ -32,13 +32,8 @@ export class TransactionService {
                 throw new Error(`Account with ID ${detail.accountId} not found`);
             }
 
-            const amount = operation === 'apply' ? detail.amount : -detail.amount;
-
-            if (detail.type === 'Dr') {
-                account.currentBalance += amount;
-            } else if (detail.type === 'Cr') {
-                account.currentBalance -= amount;
-            }
+            const amount = operation === 'apply' ? (detail.drAmount - detail.crAmount) : -(detail.drAmount - detail.crAmount);
+            account.currentBalance += amount;
 
             if (session) {
                 await account.save({ session });
@@ -47,17 +42,14 @@ export class TransactionService {
             }
         }
     }
-    private validateTransactionDetails(details: ITransaction['details']): void {
-        /*
+    private validateTransactionDetails(details: ITransaction['details']): number {
+
         let totalCredit = 0;
         let totalDebit = 0;
 
         for (const detail of details) {
-            if (detail.type === 'Cr') {
-                totalCredit += detail.amount;
-            } else if (detail.type === 'Dr') {
-                totalDebit += detail.amount;
-            }
+            totalCredit += detail.crAmount;
+            totalDebit += detail.drAmount;
         }
 
         if (totalCredit !== totalDebit) {
@@ -67,12 +59,14 @@ export class TransactionService {
         if (totalCredit <= 0 || totalDebit <= 0) {
             throw new Error(`Transaction validation failed: Both credit and debit amounts must be greater than zero (Credit: ${totalCredit}, Debit: ${totalDebit})`);
         }
-        */
+
         for (const detail of details) {
-            if (!detail.amount || detail.amount === 0) {
-                throw new Error(`Transaction detail validation failed: Amount must be greater than zero`);
+            if ((!detail.drAmount || detail.drAmount === 0) && (!detail.crAmount || detail.crAmount === 0)) {
+                throw new Error(`Transaction detail validation failed: Either debit or credit amount must be greater than zero`);
             }
         }
+
+        return totalCredit;
     }
 
     async searchTransactions(searchParams: SearchTransactionParams): Promise<TransactionDto[]> {
@@ -94,6 +88,10 @@ export class TransactionService {
         if (searchParams.voucherTypes && searchParams.voucherTypes.length > 0) {
             matchConditions.voucherType = { $in: searchParams.voucherTypes.map(type => new RegExp(type, 'i')) };
         }
+        if (searchParams.categories && searchParams.categories.length > 0) {
+            matchConditions.category = { $in: searchParams.categories.map(category => new RegExp(category, 'i')) };
+        }
+
         if (searchParams.voucherStatuses && searchParams.voucherStatuses.length > 0) {
             matchConditions.status = { $in: searchParams.voucherStatuses.map(type => new RegExp(type, 'i')) };
         }
@@ -117,6 +115,7 @@ export class TransactionService {
         let projectionFields: any = {
             date: 1,
             voucherType: 1,
+            category: 1,
             voucherNo: 1,
             amount: 1,
             props: 1,
@@ -129,6 +128,7 @@ export class TransactionService {
             projectionFields = {
                 date: 1,
                 voucherNo: 1,
+                category: 1,
                 amount: 1,
                 props: 1,
                 status: 1,
@@ -142,6 +142,7 @@ export class TransactionService {
                 date: 1,
                 voucherNo: 1,
                 voucherType: 1,
+                category: 1,
                 status: 1,
                 description: 1,
                 account: {
@@ -227,7 +228,9 @@ export class TransactionService {
         let transaction = await this.transactionModel.findById(id)
             .populate('transAccountId', accountFields)
             .populate('details.accountId', accountFields)
-            .populate('createdBy', userFields).populate('checkedBy', userFields).populate('approvedBy', userFields)
+            .populate('createdBy', userFields)
+            // .populate('checkedBy', userFields)
+            .populate('approvedBy', userFields)
             .populate('activityLog.userId', userFields)
             .lean();
 
@@ -263,7 +266,7 @@ export class TransactionService {
             throw new Error('Transaction details are required');
         }
 
-        this.validateTransactionDetails(transactionData.details);
+        transactionData.amount = this.validateTransactionDetails(transactionData.details);
 
         const transactionSupported = isTransactionSupported();
 
@@ -277,8 +280,9 @@ export class TransactionService {
                 const savedTransaction = await transaction.save({ session });
 
                 // Update account balances within the same transaction
-                await this.updateAccountBalances(session, savedTransaction.details, 'apply');
-
+                if (transactionData.status == 'APPROVED') {
+                    await this.updateAccountBalances(session, savedTransaction.details, 'apply');
+                }
                 // Commit the transaction
                 await session.commitTransaction();
                 return savedTransaction;
@@ -298,7 +302,9 @@ export class TransactionService {
 
             try {
                 // Update account balances (best effort)
-                await this.updateAccountBalances(null, savedTransaction.details, 'apply');
+                if (transactionData.status == 'APPROVED') {
+                    await this.updateAccountBalances(null, savedTransaction.details, 'apply');
+                }
                 return savedTransaction;
             } catch (error) {
                 // Attempt to clean up by deleting the transaction if balance update fails
@@ -335,16 +341,18 @@ export class TransactionService {
 
                 // If details are being updated, validate them
                 if (transactionData.details) {
-                    this.validateTransactionDetails(transactionData.details);
+                    transactionData.amount = this.validateTransactionDetails(transactionData.details);
                 }
 
                 // Reverse the old transaction details
-                await this.updateAccountBalances(session, existingTransaction.details, 'reverse');
+                if (transactionData.status == 'APPROVED') {
+                    await this.updateAccountBalances(session, existingTransaction.details, 'reverse');
+                }
 
                 // Update the transaction
                 const updatedTransaction = await this.transactionModel.findByIdAndUpdate(id, transactionData, { new: true, session });
 
-                if (updatedTransaction) {
+                if (updatedTransaction && transactionData.status == 'APPROVED') {
                     // Apply the new transaction details
                     await this.updateAccountBalances(session, updatedTransaction.details, 'apply');
                 }
@@ -371,17 +379,18 @@ export class TransactionService {
 
             // If details are being updated, validate them
             if (transactionData.details) {
-                this.validateTransactionDetails(transactionData.details);
+                transactionData.amount = this.validateTransactionDetails(transactionData.details);
             }
 
             try {
                 // Reverse the old transaction details
-                await this.updateAccountBalances(null, existingTransaction.details, 'reverse');
-
+                if (transactionData.status == 'APPROVED') {
+                    await this.updateAccountBalances(null, existingTransaction.details, 'reverse');
+                }
                 // Update the transaction
                 const updatedTransaction = await this.transactionModel.findByIdAndUpdate(id, transactionData, { new: true });
 
-                if (updatedTransaction) {
+                if (updatedTransaction && transactionData.status == 'APPROVED') {
                     // Apply the new transaction details
                     await this.updateAccountBalances(null, updatedTransaction.details, 'apply');
                 }
@@ -646,6 +655,7 @@ export class TransactionService {
         if (transaction.status === 'APPROVED') {
             throw new Error(`Transaction is already approved and cannot be updated.`);
         }
+        const transAmount = this.validateTransactionDetails(details);
 
         const activityLog = transaction.activityLog || [];
         activityLog.push({
@@ -655,7 +665,7 @@ export class TransactionService {
             comment: comment || 'Transaction accounts updated'
         });
         const fieldsToSet: Partial<ITransaction> = {
-            amount: details.reduce((sum, detail) => sum + detail.amount, 0),
+            amount: transAmount,
             details: details,
             activityLog: activityLog,
             updatedAt: new Date()
@@ -805,8 +815,7 @@ export class TransactionService {
                     totalAmount: {
                         $sum: {
                             $multiply: [
-                                "$details.amount",
-                                { $cond: [{ $eq: ["$details.type", "Dr"] }, 1, -1] },
+                                { $subtract: ["$details.drAmount", "$details.crAmount"] },
                                 nature
                             ]
                         }
@@ -815,5 +824,50 @@ export class TransactionService {
             }
         ]);
         return result.length > 0 ? result[0].totalAmount : 0;
+    }
+
+    async getDueBillsOfAccount(accountId: string): Promise<any[]> {
+        const matchConditions1: Record<string, any> = {
+            // status: 'APPROVED',
+            status: { $ne: 'DELETED' },  // Exclude deleted transactions
+            'details.accountId': accountId,
+            voucherType: 'JOURNAL'
+        };
+
+        const matchConditions2: Record<string, any> = {
+            'details.accountId': { $ne: accountId },
+            "details.balance": { $gt: 0 }
+        };
+
+        const result = await this.transactionModel.aggregate([
+            { $match: matchConditions1 },
+            { $unwind: '$details' },
+            { $match: matchConditions2 },
+            {
+                $lookup: {
+                    from: 'accounts',
+                    localField: 'details.accountId',
+                    foreignField: '_id',
+                    as: 'account'
+                }
+            },
+            { $unwind: '$account' },
+            {
+                $project: {
+                    _id: 0,
+                    transactionId: "$_id",
+                    voucherNo: 1,
+                    date: 1,
+                    accountId: "$details.accountId",
+                    accountName: "$account.name",
+                    billAmount: {
+                        $add: ["$details.drAmount", "$details.crAmount"]
+                    },
+                    dueAmount: "$details.balance",
+                    description: 1
+                }
+            }
+        ]);
+        return result;
     }
 }

@@ -754,4 +754,20 @@ export class AccountController {
     account.currentBalance = (account.openingBalance || 0) + (summary || 0);
     res.json({ success: true, data: account });
   }
+
+  @Get('/:id/due-bills')
+  @Authenticated()
+  async getDueBillsOfAccount(req: Request, res: Response): Promise<void> {
+    const { id } = req.params;
+    const accountService = new AccountService(req.user?.loggedInCompanyId!);
+    const transactionService = new TransactionService(req.user?.loggedInCompanyId!);
+    const account = await accountService.getAccountById(id);
+    if (!account) {
+      res.status(404).json({ success: false, message: 'Account not found' });
+      return;
+    }
+    
+    const bills = await transactionService.getDueBillsOfAccount(id);
+    res.json({ success: true, data: bills });
+  }
 }

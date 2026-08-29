@@ -3,6 +3,7 @@ export type SearchTransactionParams = {
     dateTo?: Date;
     voucherNo?: string;
     voucherTypes?: string[];
+    categories?: string[];
     voucherStatuses?: string[];
     createdBy?: string;
     checkedBy?: string[];

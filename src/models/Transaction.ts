@@ -1,15 +1,15 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
 import { randomUUID } from 'crypto';
 import { getCompanyConnection } from '../config/database';
 
 export interface ITransactionDetail {
     accountId: string | any;
-    type: 'Cr' | 'Dr';
     qty?: number;
     unit?: string;
     unitPrice?: number;
-    amount: number;
-    dueAmount?: number;
+    drAmount: number;
+    crAmount: number;
+    balance?: number;
 }
 
 export interface ITransactionAttachment {
@@ -26,11 +26,17 @@ export interface ITransactionActivityLog {
     action: string;
     comment: string;
 }
+export interface IBillReference {
+    transactionId: string;
+    accountId: string;
+    amount: number;
+}
 
 export interface ITransaction extends Document {
     date: Date;
     voucherNo: string;
     voucherType: string | 'CREDIT' | 'DEBIT' | 'JOURNAL';
+    category: string;
     amount: number;
     description: string;
     transAccountId?: string;
@@ -46,6 +52,7 @@ export interface ITransaction extends Document {
     approvedAt?: Date;
     props: Record<string, any>;
     activityLog: ITransactionActivityLog[];
+    referencedBills?: IBillReference[];
     createdAt: Date;
     updatedAt?: Date;
 }
@@ -57,13 +64,13 @@ const transactionDetailSchema = new Schema<ITransactionDetail>({
         ref: "Account",   // <-- this tells Mongoose the collection/model
         required: true
     },
-    type: { type: String, enum: ['Cr', 'Dr'], required: true },
     qty: { type: Number, required: false },
     unit: { type: String, required: false },
     unitPrice: { type: Number, required: false },
-    amount: { type: Number, required: true },
-    dueAmount: { type: Number, required: false },
-}, { _id: true });
+    drAmount: { type: Number, required: true },
+    crAmount: { type: Number, required: true },
+    balance: { type: Number, required: false },
+}, { _id: false });
 
 const transactionAttachmentSchema = new Schema<ITransactionAttachment>({
     id: { type: String, required: true },
@@ -98,6 +105,9 @@ const transactionSchema = new Schema<ITransaction>(
             type: String,
             enum: ['CREDIT', 'DEBIT', 'JOURNAL'],
             required: true,
+        },
+        category: {
+            type: String,
         },
         amount: {
             type: Number,
