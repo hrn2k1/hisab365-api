@@ -822,29 +822,11 @@ export class TransactionController {
   async createCreditTransaction(req: Request, res: Response): Promise<void> {
     try {
       const creditTransactionData = req.body;
-      // const amount = creditTransactionData.details.reduce((sum: number, detail: ITransactionDetail) => sum + detail.drAmount, 0);
-      // if (amount === 0) {
-      //   res.status(400).json({
-      //     success: false,
-      //     message: 'Voucher amount must be greater than zero.',
-      //   });
-      //   return;
-      // }
-      // const details: ITransactionDetail[] = creditTransactionData.details.map((detail: any) => ({
-      //   accountId: detail.accountId,
-      //   type: "Cr",
-      //   amount: detail.amount,
-      // }));
 
       const transactionData = {
-        date: creditTransactionData.date,
-        voucherNo: creditTransactionData.voucherNo,
+        ...creditTransactionData,
         voucherType: 'CREDIT',
         category: creditTransactionData.category,
-        transAccountId: creditTransactionData.transAccountId,
-        // amount: amount,
-        description: creditTransactionData.description,
-        details: creditTransactionData.details,
         attachments: creditTransactionData.attachments || [],
         status: creditTransactionData.status || 'DRAFT',
         createdBy: creditTransactionData.createdBy || req.user?.userId,
@@ -877,29 +859,10 @@ export class TransactionController {
   async createDebitTransaction(req: Request, res: Response): Promise<void> {
     try {
       const debitTransactionData = req.body;
-      // const amount = debitTransactionData.details.reduce((sum: number, detail: ITransactionDetail) => sum + detail.drAmount, 0);
-      // if (amount === 0) {
-      //   res.status(400).json({
-      //     success: false,
-      //     message: 'Voucher amount must be greater than zero.',
-      //   });
-      //   return;
-      // }
-      // const details: ITransactionDetail[] = debitTransactionData.details.map((detail: any) => ({
-      //   accountId: detail.accountId,
-      //   type: "Dr",
-      //   amount: detail.drAmount,
-      // }));
 
       const transactionData = {
-        date: debitTransactionData.date,
-        voucherNo: debitTransactionData.voucherNo,
+        ...debitTransactionData,
         voucherType: 'DEBIT',
-        category: debitTransactionData.category,
-        transAccountId: debitTransactionData.transAccountId,
-        // amount: amount,
-        description: debitTransactionData.description,
-        details: debitTransactionData.details,
         attachments: debitTransactionData.attachments || [],
         status: debitTransactionData.status || 'DRAFT',
         createdBy: debitTransactionData.createdBy || req.user?.userId,
@@ -932,20 +895,6 @@ export class TransactionController {
   async createJournalTransaction(req: Request, res: Response): Promise<void> {
     try {
       const journalTransactionData = req.body;
-      // const totalAmount = journalTransactionData.details.reduce((sum: number, detail: ITransactionDetail) => sum + detail.drAmount, 0);
-      // if (totalAmount === 0) {
-      //   res.status(400).json({
-      //     success: false,
-      //     message: 'Voucher amount must be greater than zero.',
-      //   });
-      //   return;
-      // }
-      // const details: ITransactionDetail[] = journalTransactionData.details.map((detail: any) => ({
-      //   accountId: detail.accountId,
-      //   type: detail.type,
-      //   amount: detail.amount,
-      // }));
-
       const props = journalTransactionData.props || {};
       if (journalTransactionData.billFor) {
         props['BILL_FOR'] = journalTransactionData.billFor;
@@ -955,14 +904,8 @@ export class TransactionController {
       }
 
       const transactionData = {
-        date: journalTransactionData.date,
-        voucherNo: journalTransactionData.voucherNo,
+        ...journalTransactionData,
         voucherType: 'JOURNAL',
-        category: journalTransactionData.category,
-        transAccountId: journalTransactionData.transAccountId,
-        //amount: totalAmount,
-        description: journalTransactionData.description,
-        details: journalTransactionData.details,
         attachments: journalTransactionData.attachments || [],
         status: journalTransactionData.status || 'DRAFT',
         createdBy: journalTransactionData.createdBy || req.user?.userId,

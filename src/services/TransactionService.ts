@@ -42,6 +42,45 @@ export class TransactionService {
             }
         }
     }
+
+    private async updateReferencedBills(session: mongoose.ClientSession | null, referencedBills: ITransaction['referencedBills']): Promise<void> {
+        for (const bill of referencedBills ?? []) {
+            const query = this.transactionModel.findById(bill.transactionId);
+            if (session) {
+                query.session(session);
+            }
+
+            const transaction = await query;
+            if (!transaction) {
+                throw new Error(`Transaction with ID ${bill.transactionId} not found`);
+            }
+
+            const query1 = this.transactionModel.aggregate([
+                { $unwind: '$referencedBills' },
+                { $match: { 'referencedBills.transactionId': bill.transactionId, 'referencedBills.accountId': bill.accountId, status: 'APPROVED' } },
+                { $project: { _id: 0, 'referencedBills.transactionId': 1, 'referencedBills.accountId': 1, 'referencedBills.amount': 1 } }
+            ])
+                       
+            if (session) {
+                query1.session(session);
+            }
+            const referencedBills = await query1;
+            const totalReferencedAmount = referencedBills.reduce((sum, b) => sum + b.referencedBills.amount || 0, 0);
+
+            transaction.details.forEach(detail => {
+                if (detail.accountId.toString() === bill.accountId.toString()) {
+                    detail.balance = (detail.drAmount || 0 + detail.crAmount || 0) - totalReferencedAmount;
+                }
+            });
+
+            if (session) {
+                await transaction.save({ session });
+            } else {
+                await transaction.save();
+            }
+        }
+    }
+
     private validateTransactionDetails(details: ITransaction['details']): number {
 
         let totalCredit = 0;
@@ -282,6 +321,7 @@ export class TransactionService {
                 // Update account balances within the same transaction
                 if (transactionData.status == 'APPROVED') {
                     await this.updateAccountBalances(session, savedTransaction.details, 'apply');
+                    await this.updateReferencedBills(session, savedTransaction.referencedBills);
                 }
                 // Commit the transaction
                 await session.commitTransaction();
@@ -304,6 +344,7 @@ export class TransactionService {
                 // Update account balances (best effort)
                 if (transactionData.status == 'APPROVED') {
                     await this.updateAccountBalances(null, savedTransaction.details, 'apply');
+                    await this.updateReferencedBills(null, savedTransaction.referencedBills);
                 }
                 return savedTransaction;
             } catch (error) {
