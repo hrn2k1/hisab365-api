@@ -87,6 +87,12 @@ const transactionActivityLogSchema = new Schema<ITransactionActivityLog>({
     comment: { type: String, required: false },
 }, { _id: false });
 
+const referencedBillSchema = new Schema<IBillReference>({
+    transactionId: { type: String, required: true, ref: "Transaction" },
+    accountId: { type: String, required: true, ref: "Account" },
+    amount: { type: Number, required: true },
+}, { _id: false });
+
 const transactionSchema = new Schema<ITransaction>(
     {
         _id: {
@@ -174,6 +180,9 @@ const transactionSchema = new Schema<ITransaction>(
             type: [transactionActivityLogSchema],
             default: [],
         },
+        referencedBills: {
+            type: [referencedBillSchema]
+        }
     },
     {
         timestamps: true,

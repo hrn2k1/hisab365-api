@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { Controller, Get, Post, Put, Delete, Authenticated, Patch, Use } from '../decorators';
 import { TransactionService } from '../services/TransactionService';
 import { SearchTransactionParams } from '../types/SearchTransactionParams';
-import { ITransactionDetail } from '../models/Transaction';
 import { singleFileUpload } from '../middlewares/uploadMiddleware';
 import CloudinaryService from '../services/storage/CloudinaryService';
 import { randomUUID } from 'crypto';

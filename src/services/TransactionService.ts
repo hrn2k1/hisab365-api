@@ -1,4 +1,4 @@
-import Transaction, { ITransaction, ITransactionActivityLog, ITransactionAttachment, ITransactionDetail } from '../models/Transaction';
+import Transaction, { IBillReference, ITransaction, ITransactionActivityLog, ITransactionAttachment, ITransactionDetail } from '../models/Transaction';
 import Account, { IAccount } from '../models/Account';
 import mongoose, { Model } from 'mongoose';
 import { isTransactionSupported } from '../config/database';
@@ -60,7 +60,7 @@ export class TransactionService {
                 { $match: { 'referencedBills.transactionId': bill.transactionId, 'referencedBills.accountId': bill.accountId, status: 'APPROVED' } },
                 { $project: { _id: 0, 'referencedBills.transactionId': 1, 'referencedBills.accountId': 1, 'referencedBills.amount': 1 } }
             ])
-                       
+
             if (session) {
                 query1.session(session);
             }
@@ -271,6 +271,8 @@ export class TransactionService {
             // .populate('checkedBy', userFields)
             .populate('approvedBy', userFields)
             .populate('activityLog.userId', userFields)
+            .populate('referencedBills.transactionId', 'voucherNo')
+            .populate('referencedBills.accountId', 'name')
             .lean();
 
         if (transaction) {
@@ -293,6 +295,17 @@ export class TransactionService {
                     user: log.userId
                 } as unknown as ITransactionActivityLog;
             });
+            if (transaction.referencedBills?.length) {
+                transaction.referencedBills = transaction.referencedBills.map(bill => {
+                    return {
+                        ...bill,
+                        transactionId: (bill.transactionId as any)?._id,
+                        voucherNo: (bill.transactionId as any)?.voucherNo,
+                        accountId: (bill.accountId as any)?._id,
+                        accountName: (bill.accountId as any)?.name
+                    } as unknown as IBillReference;
+                });
+            }
         }
         return transaction;
     }
@@ -321,8 +334,8 @@ export class TransactionService {
                 // Update account balances within the same transaction
                 if (transactionData.status == 'APPROVED') {
                     await this.updateAccountBalances(session, savedTransaction.details, 'apply');
-                    await this.updateReferencedBills(session, savedTransaction.referencedBills);
                 }
+                await this.updateReferencedBills(session, savedTransaction.referencedBills);
                 // Commit the transaction
                 await session.commitTransaction();
                 return savedTransaction;
@@ -344,8 +357,8 @@ export class TransactionService {
                 // Update account balances (best effort)
                 if (transactionData.status == 'APPROVED') {
                     await this.updateAccountBalances(null, savedTransaction.details, 'apply');
-                    await this.updateReferencedBills(null, savedTransaction.referencedBills);
                 }
+                await this.updateReferencedBills(null, savedTransaction.referencedBills);
                 return savedTransaction;
             } catch (error) {
                 // Attempt to clean up by deleting the transaction if balance update fails
@@ -397,7 +410,8 @@ export class TransactionService {
                     // Apply the new transaction details
                     await this.updateAccountBalances(session, updatedTransaction.details, 'apply');
                 }
-
+                if (updatedTransaction)
+                    await this.updateReferencedBills(session, updatedTransaction.referencedBills);
                 // Commit the transaction
                 await session.commitTransaction();
                 return updatedTransaction;
@@ -435,7 +449,8 @@ export class TransactionService {
                     // Apply the new transaction details
                     await this.updateAccountBalances(null, updatedTransaction.details, 'apply');
                 }
-
+                if (updatedTransaction)
+                    await this.updateReferencedBills(null, updatedTransaction.referencedBills);
                 return updatedTransaction;
             } catch (error) {
                 console.error('❌ Transaction update failed, data may be in inconsistent state');
@@ -469,6 +484,8 @@ export class TransactionService {
                 // Delete the transaction
                 const deletedTransaction = await this.transactionModel.findByIdAndDelete(id).session(session);
 
+                if (deletedTransaction)
+                    await this.updateReferencedBills(session, deletedTransaction.referencedBills);
                 // Commit the transaction
                 await session.commitTransaction();
                 return deletedTransaction as unknown as ITransaction | null;
@@ -493,7 +510,10 @@ export class TransactionService {
                 await this.updateAccountBalances(null, transaction.details, 'reverse');
 
                 // Delete the transaction
-                return (await this.transactionModel.findByIdAndDelete(id)) as unknown as ITransaction | null;
+                const deletedTransaction = await this.transactionModel.findByIdAndDelete(id);
+                if (deletedTransaction)
+                    await this.updateReferencedBills(null, deletedTransaction.referencedBills);
+                return deletedTransaction as unknown as ITransaction | null;
             } catch (error) {
                 console.error('❌ Transaction deletion failed, data may be in inconsistent state');
                 throw new Error(`Transaction deletion failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -592,11 +612,14 @@ export class TransactionService {
             activityLog: activityLog,
             updatedAt: new Date()
         };
-        return this.transactionModel.findByIdAndUpdate(
+        const updatedTransaction = await this.transactionModel.findByIdAndUpdate(
             id,
             { $set: fieldsToSet },
             { new: true, runValidators: true }
         );
+        if (updatedTransaction)
+            await this.updateReferencedBills(null, updatedTransaction.referencedBills);
+        return updatedTransaction;
     }
 
     async sendToReviewTransaction(id: string, sentByUserId: string, comment: string): Promise<ITransaction | null> {
