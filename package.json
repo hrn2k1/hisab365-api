@@ -1,10 +1,11 @@
 {
   "name": "hisab365-api",
   "version": "1.0.0",
-  "description": "Hisab 365 API built with TypeScript, Express, and MongoDB",
+  "description": "Hisab365 API",
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
+    "debug": "node -r ts-node/register --inspect=9229 src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "watch": "tsc -w",

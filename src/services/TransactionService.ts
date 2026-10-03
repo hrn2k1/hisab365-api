@@ -1,20 +1,23 @@
 import Transaction, { IBillReference, ITransaction, ITransactionActivityLog, ITransactionAttachment, ITransactionDetail } from '../models/Transaction';
 import Account, { IAccount } from '../models/Account';
-import mongoose, { Model } from 'mongoose';
+import mongoose, { ClientSession, Model } from 'mongoose';
 import { isTransactionSupported } from '../config/database';
 import { TransactionDto } from '../types/TransactionDto';
 import { SearchTransactionParams } from '../types/SearchTransactionParams';
 import { randomUUID } from 'crypto';
+import Bill, { IBill } from '../models/Bill';
 
 export class TransactionService {
     private companyId: string;
     private accountModel: Model<IAccount>;
     private transactionModel: Model<ITransaction>;
+    private billModel: Model<IBill>;
 
     constructor(companyId: string) {
         this.companyId = companyId;
         this.accountModel = Account(companyId);
         this.transactionModel = Transaction(companyId);
+        this.billModel = Bill(companyId);
     }
     /**
      * Update account balances based on transaction details
@@ -39,44 +42,6 @@ export class TransactionService {
                 await account.save({ session });
             } else {
                 await account.save();
-            }
-        }
-    }
-
-    private async updateReferencedBills(session: mongoose.ClientSession | null, referencedBills: ITransaction['referencedBills']): Promise<void> {
-        for (const bill of referencedBills ?? []) {
-            const query = this.transactionModel.findById(bill.transactionId);
-            if (session) {
-                query.session(session);
-            }
-
-            const transaction = await query;
-            if (!transaction) {
-                throw new Error(`Transaction with ID ${bill.transactionId} not found`);
-            }
-
-            const query1 = this.transactionModel.aggregate([
-                { $unwind: '$referencedBills' },
-                { $match: { 'referencedBills.transactionId': bill.transactionId, 'referencedBills.accountId': bill.accountId, status: 'APPROVED' } },
-                { $project: { _id: 0, 'referencedBills.transactionId': 1, 'referencedBills.accountId': 1, 'referencedBills.amount': 1 } }
-            ])
-
-            if (session) {
-                query1.session(session);
-            }
-            const referencedBills = await query1;
-            const totalReferencedAmount = referencedBills.reduce((sum, b) => sum + b.referencedBills.amount || 0, 0);
-
-            transaction.details.forEach(detail => {
-                if (detail.accountId.toString() === bill.accountId.toString()) {
-                    detail.balance = (detail.drAmount || 0 + detail.crAmount || 0) - totalReferencedAmount;
-                }
-            });
-
-            if (session) {
-                await transaction.save({ session });
-            } else {
-                await transaction.save();
             }
         }
     }
@@ -109,6 +74,8 @@ export class TransactionService {
     }
 
     async searchTransactions(searchParams: SearchTransactionParams): Promise<TransactionDto[]> {
+        const exactCaseInsensitive = (value: string) => new RegExp(`^${value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+
         const matchConditions: Record<string, any> = {
             status: { $ne: 'DELETED' }  // Exclude deleted transactions
         };
@@ -125,14 +92,14 @@ export class TransactionService {
             matchConditions.voucherNo = { $regex: searchParams.voucherNo, $options: 'i' };
         }
         if (searchParams.voucherTypes && searchParams.voucherTypes.length > 0) {
-            matchConditions.voucherType = { $in: searchParams.voucherTypes.map(type => new RegExp(type, 'i')) };
+            matchConditions.voucherType = { $in: searchParams.voucherTypes.map(type => exactCaseInsensitive(type)) };
         }
         if (searchParams.categories && searchParams.categories.length > 0) {
-            matchConditions.category = { $in: searchParams.categories.map(category => new RegExp(category, 'i')) };
+            matchConditions.category = { $in: searchParams.categories.map(category => exactCaseInsensitive(category)) };
         }
 
         if (searchParams.voucherStatuses && searchParams.voucherStatuses.length > 0) {
-            matchConditions.status = { $in: searchParams.voucherStatuses.map(type => new RegExp(type, 'i')) };
+            matchConditions.status = { $in: searchParams.voucherStatuses.map(type => exactCaseInsensitive(type)) };
         }
         if (searchParams.createdBy) {
             matchConditions.createdBy = { $regex: new RegExp(searchParams.createdBy, 'i') };
@@ -216,45 +183,50 @@ export class TransactionService {
     }
 
     async getBills(accountId: string): Promise<any[]> {
-        const matchConditions: Record<string, any> = {
-            status: { $ne: 'DELETED' },  // Exclude deleted transactions
-            'details.accountId': accountId,
-            voucherType: 'JOURNAL'
-        };
-
-        return this.transactionModel.aggregate<TransactionDto>([
-            { $match: matchConditions },
+        return this.billModel.aggregate<TransactionDto>([
             {
-                $project: {
-                    account: {
-                        $first: {
-                            $filter: {
-                                input: "$details",
-                                as: "detail",
-                                cond: {
-                                    $eq: [
-                                        "$$detail.accountId",
-                                        accountId
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    voucherNo: 1,
-                    billFor: "$props.BILL_FOR"
+                $lookup: {
+                    from: "transactions",
+                    localField: "transactionId",
+                    foreignField: "_id",
+                    as: "transaction"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$transaction"
+                }
+            },
+            {
+                $match: {
+                    // "transaction.status": "APPROVED",
+                    billAccountId: accountId
+                }
+            },
+            {
+                $lookup: {
+                    from: "accounts",
+                    localField: "billForAccountId",
+                    foreignField: "_id",
+                    as: "billForAccount"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$billForAccount"
                 }
             },
             {
                 $project: {
                     _id: 0,
                     billId: "$_id",
-                    billNo: "$voucherNo",
-                    billFor: 1,
-                    billAmount: "$account.amount",
-                    billType: "$account.type"
+                    billNo: "$transaction.voucherNo",
+                    billForAccountId: 1,
+                    billFor: "$billForAccount.name",
+                    amount: 1
                 }
             },
-            { $sort: { date: 1 } }
+            { $sort: { "transaction.date": 1 } }
         ]);
     }
 
@@ -271,7 +243,7 @@ export class TransactionService {
             // .populate('checkedBy', userFields)
             .populate('approvedBy', userFields)
             .populate('activityLog.userId', userFields)
-            .populate('referencedBills.transactionId', 'voucherNo')
+            .populate('referencedBills.transactionId', 'voucherNo amount')
             .populate('referencedBills.accountId', 'name')
             .lean();
 
@@ -301,6 +273,7 @@ export class TransactionService {
                         ...bill,
                         transactionId: (bill.transactionId as any)?._id,
                         voucherNo: (bill.transactionId as any)?.voucherNo,
+                        billAmount: (bill.transactionId as any)?.amount,
                         accountId: (bill.accountId as any)?._id,
                         accountName: (bill.accountId as any)?.name
                     } as unknown as IBillReference;
@@ -308,6 +281,89 @@ export class TransactionService {
             }
         }
         return transaction;
+    }
+
+    async handleAccountsBalanceAndBills(transactionId: string, transaction: ITransaction | Partial<ITransaction>, operation: 'create' | 'update' | 'delete', session: ClientSession | null = null): Promise<void> {
+        if (transaction.category === "MEMBER_BILL" || transaction.category === "CUSTOMER_BILL" || transaction.category === "SUPPLIER_BILL") {
+            if (['update', 'delete'].includes(operation)) {
+                await this.billModel.deleteMany({ transactionId: transactionId }).session(session);
+            }
+            if (['create', 'update'].includes(operation)) {
+                (transaction.details || [])
+                    .filter(x => x.accountId != transaction.transAccountId)
+                    .forEach(async x => {
+                        const billData = {
+                            transactionId: transactionId,
+                            billAccountId: transaction.transAccountId,
+                            billForAccountId: x.accountId,
+                            amount: x.drAmount + x.crAmount,
+                            balance: x.drAmount + x.crAmount,
+                            billAdjustments: []
+                        };
+                        const bill = new this.billModel(billData);
+                        await bill.save({ session });
+                    });
+            }
+        }
+        else if (transaction.category === "MEMBER_BATCH_BILL") {
+            if (['update', 'delete'].includes(operation)) {
+                await this.billModel.deleteMany({ transactionId: transactionId }).session(session);
+            }
+            if (['create', 'update'].includes(operation)) {
+                (transaction.details || [])
+                    .filter(x => x.accountId != transaction.transAccountId)
+                    .forEach(async x => {
+                        const billData = {
+                            transactionId: transactionId,
+                            billAccountId: x.accountId,
+                            billForAccountId: transaction.transAccountId,
+                            amount: x.drAmount + x.crAmount,
+                            balance: x.drAmount + x.crAmount,
+                            billAdjustments: []
+                        };
+                        const bill = new this.billModel(billData);
+                        await bill.save({ session });
+                    });
+            }
+        }
+        else if (transaction.category === "MEMBER_BILL_RECEIPT" || transaction.category === "CUSTOMER_BILL_RECEIPT" || transaction.category === "SUPPLIER_BILL_PAY") {
+            if (['update', 'delete'].includes(operation)) {
+                const billsAdjusted = await this.billModel.find({ "billAdjustments.transactionId": transactionId }).session(session);
+                for (const bill of (billsAdjusted || [])) {
+                    const billAdjustments = (bill.billAdjustments || []).filter(x => x.transactionId !== transactionId);
+                    bill.billAdjustments = billAdjustments;
+                    const totalAdjustments = billAdjustments.reduce((sum, x) => sum + x.amount || 0, 0)
+                    bill.balance = (bill.amount || 0) - totalAdjustments;
+                    await this.billModel.findByIdAndUpdate(bill._id, bill, { new: true, session });
+                }
+            }
+            if (['create', 'update'].includes(operation)) {
+                const referencedBills = (transaction.referencedBills || []).filter(x => x.amount > 0);
+                for (const refBill of referencedBills) {
+                    const bill = await this.billModel.findOne({ transactionId: refBill.transactionId, billForAccountId: refBill.accountId });
+                    if (bill) {
+                        const billAdjustments = bill.billAdjustments || [];
+                        billAdjustments.push({
+                            transactionId: transactionId,
+                            billAccountId: bill.billAccountId,
+                            billForAccountId: refBill.accountId,
+                            amount: refBill.amount
+                        });
+                        bill.billAdjustments = billAdjustments;
+                        const totalAdjustments = billAdjustments.reduce((sum, x) => sum + x.amount || 0, 0)
+                        bill.balance = (bill.amount || 0) - totalAdjustments;
+                        await this.billModel.findByIdAndUpdate(bill._id, bill, { new: true, session });
+                    }
+                }
+            }
+        }
+
+        // Update account balances within the same transaction
+        if (transaction.status == 'APPROVED') {
+            await this.updateAccountBalances(session, transaction.details || [], 'apply');
+        }
+
+        // await this.updateReferencedBills(session, savedTransaction?.referencedBills || []);
     }
 
     /**
@@ -321,46 +377,28 @@ export class TransactionService {
         transactionData.amount = this.validateTransactionDetails(transactionData.details);
 
         const transactionSupported = isTransactionSupported();
-
+        let session: ClientSession | null = null;
+        let savedTransaction: ITransaction | null = null;
         if (transactionSupported) {
             // Use database transactions for atomicity
-            const session = await mongoose.startSession();
+            session = await mongoose.startSession();
             session.startTransaction();
+        } else {
+            console.warn('⚠️ Using non-transactional operations. Data consistency not guaranteed.');
+        }
+        try {
+            const transaction = new this.transactionModel(transactionData);
+            savedTransaction = await transaction.save({ session });
+            await this.handleAccountsBalanceAndBills(savedTransaction?._id || savedTransaction?.id, transactionData, 'create', session);
+            // Commit the transaction
+            await session?.commitTransaction();
 
-            try {
-                const transaction = new this.transactionModel(transactionData);
-                const savedTransaction = await transaction.save({ session });
-
-                // Update account balances within the same transaction
-                if (transactionData.status == 'APPROVED') {
-                    await this.updateAccountBalances(session, savedTransaction.details, 'apply');
-                }
-                await this.updateReferencedBills(session, savedTransaction.referencedBills);
-                // Commit the transaction
-                await session.commitTransaction();
-                return savedTransaction;
-            } catch (error) {
+            return savedTransaction;
+        } catch (error) {
+            if (transactionSupported && session) {
                 // Abort the transaction on error
                 await session.abortTransaction();
-                throw error;
-            } finally {
-                session.endSession();
-            }
-        } else {
-            // Fallback: Perform operations without transactions
-            console.warn('⚠️ Using non-transactional operations. Data consistency not guaranteed.');
-
-            const transaction = new this.transactionModel(transactionData);
-            const savedTransaction = await transaction.save();
-
-            try {
-                // Update account balances (best effort)
-                if (transactionData.status == 'APPROVED') {
-                    await this.updateAccountBalances(null, savedTransaction.details, 'apply');
-                }
-                await this.updateReferencedBills(null, savedTransaction.referencedBills);
-                return savedTransaction;
-            } catch (error) {
+            } else if (savedTransaction) {
                 // Attempt to clean up by deleting the transaction if balance update fails
                 console.error('❌ Balance update failed, attempting cleanup...');
                 try {
@@ -370,6 +408,9 @@ export class TransactionService {
                 }
                 throw new Error(`Transaction creation failed: ${error instanceof Error ? error.message : String(error)}`);
             }
+            throw error;
+        } finally {
+            session?.endSession();
         }
     }
 
@@ -378,57 +419,22 @@ export class TransactionService {
      */
     async updateTransaction(id: string, transactionData: Partial<ITransaction>): Promise<ITransaction | null> {
         const transactionSupported = isTransactionSupported();
-
+        let session: ClientSession | null = null;
+        let updatedTransaction: ITransaction | null = null;
         if (transactionSupported) {
             // Use database transactions for atomicity
-            const session = await mongoose.startSession();
+            session = await mongoose.startSession();
             session.startTransaction();
-
-            try {
-                // Get the existing transaction to reverse its effects
-                const existingTransaction = await this.transactionModel.findById(id).session(session);
-                if (!existingTransaction) {
-                    await session.abortTransaction();
-                    session.endSession();
-                    return null;
-                }
-
-                // If details are being updated, validate them
-                if (transactionData.details) {
-                    transactionData.amount = this.validateTransactionDetails(transactionData.details);
-                }
-
-                // Reverse the old transaction details
-                if (transactionData.status == 'APPROVED') {
-                    await this.updateAccountBalances(session, existingTransaction.details, 'reverse');
-                }
-
-                // Update the transaction
-                const updatedTransaction = await this.transactionModel.findByIdAndUpdate(id, transactionData, { new: true, session });
-
-                if (updatedTransaction && transactionData.status == 'APPROVED') {
-                    // Apply the new transaction details
-                    await this.updateAccountBalances(session, updatedTransaction.details, 'apply');
-                }
-                if (updatedTransaction)
-                    await this.updateReferencedBills(session, updatedTransaction.referencedBills);
-                // Commit the transaction
-                await session.commitTransaction();
-                return updatedTransaction;
-            } catch (error) {
-                // Abort the transaction on error
-                await session.abortTransaction();
-                throw error;
-            } finally {
-                session.endSession();
-            }
-        } else {
-            // Fallback: Perform operations without transactions
+        }
+        else {
             console.warn('⚠️ Using non-transactional operations. Data consistency not guaranteed.');
-
+        }
+        try {
             // Get the existing transaction to reverse its effects
-            const existingTransaction = await this.transactionModel.findById(id);
+            const existingTransaction = await this.transactionModel.findById(id).session(session);
             if (!existingTransaction) {
+                await session?.abortTransaction();
+                session?.endSession();
                 return null;
             }
 
@@ -437,25 +443,26 @@ export class TransactionService {
                 transactionData.amount = this.validateTransactionDetails(transactionData.details);
             }
 
-            try {
-                // Reverse the old transaction details
-                if (transactionData.status == 'APPROVED') {
-                    await this.updateAccountBalances(null, existingTransaction.details, 'reverse');
-                }
-                // Update the transaction
-                const updatedTransaction = await this.transactionModel.findByIdAndUpdate(id, transactionData, { new: true });
+            // // Reverse the old transaction details
+            // if (transactionData.status == 'APPROVED') {
+            //     await this.updateAccountBalances(session, existingTransaction.details, 'reverse');
+            // }
 
-                if (updatedTransaction && transactionData.status == 'APPROVED') {
-                    // Apply the new transaction details
-                    await this.updateAccountBalances(null, updatedTransaction.details, 'apply');
-                }
-                if (updatedTransaction)
-                    await this.updateReferencedBills(null, updatedTransaction.referencedBills);
-                return updatedTransaction;
-            } catch (error) {
-                console.error('❌ Transaction update failed, data may be in inconsistent state');
-                throw new Error(`Transaction update failed: ${error instanceof Error ? error.message : String(error)}`);
-            }
+            // Update the transaction
+            updatedTransaction = await this.transactionModel.findByIdAndUpdate(id, transactionData, { new: true, session });
+
+            await this.handleAccountsBalanceAndBills(id, updatedTransaction || transactionData, 'update', session);
+
+            // Commit the transaction
+            await session?.commitTransaction();
+
+            return updatedTransaction;
+        } catch (error) {
+            // Abort the transaction on error
+            await session?.abortTransaction();
+            throw error;
+        } finally {
+            session?.endSession();
         }
     }
 
@@ -464,60 +471,33 @@ export class TransactionService {
      */
     async deleteTransaction(id: string): Promise<ITransaction | null> {
         const transactionSupported = isTransactionSupported();
-
+        let session: ClientSession | null = null;
+        let deletedTransaction: ITransaction | null = null;
         if (transactionSupported) {
             // Use database transactions for atomicity
-            const session = await mongoose.startSession();
+            session = await mongoose.startSession();
             session.startTransaction();
-
-            try {
-                const transaction = await this.transactionModel.findById(id).session(session);
-                if (!transaction) {
-                    await session.abortTransaction();
-                    session.endSession();
-                    return null;
-                }
-
-                // Reverse the transaction details before deleting
-                await this.updateAccountBalances(session, transaction.details, 'reverse');
-
-                // Delete the transaction
-                const deletedTransaction = await this.transactionModel.findByIdAndDelete(id).session(session);
-
-                if (deletedTransaction)
-                    await this.updateReferencedBills(session, deletedTransaction.referencedBills);
-                // Commit the transaction
-                await session.commitTransaction();
-                return deletedTransaction as unknown as ITransaction | null;
-            } catch (error) {
-                // Abort the transaction on error
-                await session.abortTransaction();
-                throw error;
-            } finally {
-                session.endSession();
-            }
-        } else {
-            // Fallback: Perform operations without transactions
-            console.warn('⚠️ Using non-transactional operations. Data consistency not guaranteed.');
-
-            const transaction = await this.transactionModel.findById(id);
+        }
+        try {
+            const transaction = await this.transactionModel.findById(id).session(session);
             if (!transaction) {
+                await session?.abortTransaction();
+                session?.endSession();
                 return null;
             }
 
-            try {
-                // Reverse the transaction details before deleting
-                await this.updateAccountBalances(null, transaction.details, 'reverse');
+            await this.handleAccountsBalanceAndBills(id, transaction, 'delete', session);
 
-                // Delete the transaction
-                const deletedTransaction = await this.transactionModel.findByIdAndDelete(id);
-                if (deletedTransaction)
-                    await this.updateReferencedBills(null, deletedTransaction.referencedBills);
-                return deletedTransaction as unknown as ITransaction | null;
-            } catch (error) {
-                console.error('❌ Transaction deletion failed, data may be in inconsistent state');
-                throw new Error(`Transaction deletion failed: ${error instanceof Error ? error.message : String(error)}`);
-            }
+            deletedTransaction = await this.transactionModel.findByIdAndDelete(id).session(session);
+
+            await session?.commitTransaction();
+            return deletedTransaction as unknown as ITransaction | null;
+        } catch (error) {
+            // Abort the transaction on error
+            await session?.abortTransaction();
+            throw error;
+        } finally {
+            session?.endSession();
         }
     }
 
@@ -617,8 +597,8 @@ export class TransactionService {
             { $set: fieldsToSet },
             { new: true, runValidators: true }
         );
-        if (updatedTransaction)
-            await this.updateReferencedBills(null, updatedTransaction.referencedBills);
+        // if (updatedTransaction)
+        //     await this.updateReferencedBills(null, updatedTransaction.referencedBills);
         return updatedTransaction;
     }
 
@@ -672,6 +652,7 @@ export class TransactionService {
             activityLog: activityLog,
             updatedAt: new Date()
         };
+        await this.handleAccountsBalanceAndBills(id, transaction, 'delete');
         return this.transactionModel.findByIdAndUpdate(
             id,
             { $set: fieldsToSet },
@@ -711,6 +692,42 @@ export class TransactionService {
         );
     }
 
+    async updateTransactionAccountsV2(id: string, updatedBy: string, transAccountId: string, details: ITransactionDetail[], referencedBills: IBillReference[] | null, comment: string): Promise<ITransaction | null> {
+        const transaction = await this.transactionModel.findById(id);
+        if (!transaction) {
+            throw new Error(`Transaction with ID ${id} not found`);
+        }
+        if (transaction.status === 'APPROVED') {
+            throw new Error(`Transaction is already approved and cannot be updated.`);
+        }
+        const transAmount = this.validateTransactionDetails(details);
+
+        const activityLog = transaction.activityLog || [];
+        activityLog.push({
+            timestamp: new Date(),
+            userId: updatedBy,
+            action: 'UPDATED',
+            comment: comment || 'Transaction accounts updated'
+        });
+        const fieldsToSet: Partial<ITransaction> = {
+            amount: transAmount,
+            transAccountId: transAccountId,
+            details: details,
+            activityLog: activityLog,
+            updatedAt: new Date()
+        };
+        if (referencedBills) {
+            fieldsToSet.referencedBills = referencedBills;
+        }
+        const updatedTransaction = await this.transactionModel.findByIdAndUpdate(
+            id,
+            { $set: fieldsToSet },
+            { new: true, runValidators: true }
+        );
+        await this.handleAccountsBalanceAndBills(id, updatedTransaction || transaction, 'update');
+        return updatedTransaction;
+    }
+
     async updateTransactionAccounts(id: string, updatedBy: string, details: ITransactionDetail[], comment: string): Promise<ITransaction | null> {
         const transaction = await this.transactionModel.findById(id);
         if (!transaction) {
@@ -734,11 +751,13 @@ export class TransactionService {
             activityLog: activityLog,
             updatedAt: new Date()
         };
-        return this.transactionModel.findByIdAndUpdate(
+        const updatedTransaction = await this.transactionModel.findByIdAndUpdate(
             id,
             { $set: fieldsToSet },
             { new: true, runValidators: true }
         );
+        await this.handleAccountsBalanceAndBills(id, updatedTransaction || transaction, 'update');
+        return updatedTransaction;
     }
 
     async updateTransactionProps(id: string, updatedBy: string, props: Record<string, any>, comment: string): Promise<ITransaction | null> {
@@ -891,44 +910,52 @@ export class TransactionService {
     }
 
     async getDueBillsOfAccount(accountId: string): Promise<any[]> {
-        const matchConditions1: Record<string, any> = {
-            // status: 'APPROVED',
-            status: { $ne: 'DELETED' },  // Exclude deleted transactions
-            'details.accountId': accountId,
-            voucherType: 'JOURNAL'
-        };
 
-        const matchConditions2: Record<string, any> = {
-            'details.accountId': { $ne: accountId },
-            "details.balance": { $gt: 0 }
-        };
-
-        const result = await this.transactionModel.aggregate([
-            { $match: matchConditions1 },
-            { $unwind: '$details' },
-            { $match: matchConditions2 },
+        const result = await this.billModel.aggregate([
             {
                 $lookup: {
-                    from: 'accounts',
-                    localField: 'details.accountId',
-                    foreignField: '_id',
-                    as: 'account'
+                    from: "transactions",
+                    localField: "transactionId",
+                    foreignField: "_id",
+                    as: "transaction"
                 }
             },
-            { $unwind: '$account' },
+            {
+                $unwind: {
+                    path: "$transaction"
+                }
+            },
+            {
+                $match: {
+                    // "transaction.status": "APPROVED",
+                    billAccountId: accountId,
+                    balance: { $gt: 0 }
+                }
+            },
+            {
+                $lookup: {
+                    from: "accounts",
+                    localField: "billForAccountId",
+                    foreignField: "_id",
+                    as: "billForAccount"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$billForAccount"
+                }
+            },
             {
                 $project: {
                     _id: 0,
-                    transactionId: "$_id",
-                    voucherNo: 1,
-                    date: 1,
-                    accountId: "$details.accountId",
-                    accountName: "$account.name",
-                    billAmount: {
-                        $add: ["$details.drAmount", "$details.crAmount"]
-                    },
-                    dueAmount: "$details.balance",
-                    description: 1
+                    transactionId: 1,
+                    voucherNo: "$transaction.voucherNo",
+                    date: "$transaction.date",
+                    accountId: "$billForAccountId",
+                    accountName: "$billForAccount.name",
+                    billAmount: "$amount",
+                    dueAmount: "$balance",
+                    description: "$transaction.description"
                 }
             }
         ]);

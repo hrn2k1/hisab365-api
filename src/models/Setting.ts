@@ -24,12 +24,21 @@ export interface VoucherStatus {
     color?: string;
 }
 
+export interface VoucherCategory {
+    label: string;
+    short?: string;
+    color?: string;
+    voucherType?: string;
+    voucherNoPrefix?: string;
+}
+
 export interface ISetting extends Document {
     _id: string;
     organizationTypes: OrganizationType | Record<string, any>;
     accountTypes: AccountType | Record<string, any>;
     voucherTypes: VoucherType | Record<string, any>;
     voucherStatuses: VoucherStatus | Record<string, any>;
+    voucherCategories: VoucherCategory | Record<string, any>;
 }
 
 const settingSchema = new Schema<ISetting>(
@@ -54,6 +63,11 @@ const settingSchema = new Schema<ISetting>(
             default: {},
         },
         voucherStatuses: {
+            type: Map,
+            of: Schema.Types.Mixed,
+            default: {},
+        },
+        voucherCategories: {
             type: Map,
             of: Schema.Types.Mixed,
             default: {},

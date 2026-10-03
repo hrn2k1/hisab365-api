@@ -9,7 +9,6 @@ export interface ITransactionDetail {
     unitPrice?: number;
     drAmount: number;
     crAmount: number;
-    balance?: number;
 }
 
 export interface ITransactionAttachment {
@@ -69,7 +68,6 @@ const transactionDetailSchema = new Schema<ITransactionDetail>({
     unitPrice: { type: Number, required: false },
     drAmount: { type: Number, required: true },
     crAmount: { type: Number, required: true },
-    balance: { type: Number, required: false },
 }, { _id: false });
 
 const transactionAttachmentSchema = new Schema<ITransactionAttachment>({

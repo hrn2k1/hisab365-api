@@ -463,4 +463,22 @@ export class MiscController {
 			});
 		}
 	}
+
+	@Get('/v2/voucher-categories')
+	async getVoucherCategories(req: Request, res: Response): Promise<void> {
+		try {
+			const setting = await Setting.findOne({}, { voucherCategories: 1, _id: 0 }).lean();
+			const rawVoucherCategories = (setting as any)?.voucherTypes || {};
+
+			res.json({
+				success: true,
+				data: rawVoucherCategories,
+			});
+		} catch (error: any) {
+			res.status(500).json({
+				success: false,
+				message: error?.message || 'An error occurred while fetching voucher categories',
+			});
+		}
+	}
 }

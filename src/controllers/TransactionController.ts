@@ -1174,6 +1174,36 @@ export class TransactionController {
   }
 
   @Authenticated()
+  @Patch('/v2/:id/accounts')
+  async updateTransactionAccountsV2(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { transAccountId, details, referencedBills, comment } = req.body;
+      const loggedInUser = req.user;
+      const transaction = await new TransactionService(loggedInUser?.loggedInCompanyId!).updateTransactionAccountsV2(id, loggedInUser?.userId!, transAccountId, details, referencedBills, comment);
+
+      if (!transaction) {
+        res.status(404).json({
+          success: false,
+          message: 'Transaction not found',
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        message: 'Transaction accounts updated successfully',
+        data: transaction,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'An error occurred',
+      });
+    }
+  }
+
+  @Authenticated()
   @Patch('/:id/additional-info')
   async updateTransactionProps(req: Request, res: Response): Promise<void> {
     try {

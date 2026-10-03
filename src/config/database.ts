@@ -126,6 +126,7 @@ export function getCompanyConnection(companyId: string): Connection {
 }
 
 export function isTransactionSupported(): boolean {
+  return false;
   if (!transactionSupportChecked) {
     throw new Error('Transaction support has not been initialized yet. Call connectDatabase() first.');
   }
