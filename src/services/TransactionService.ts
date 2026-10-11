@@ -144,29 +144,20 @@ export class TransactionService {
                 billFor: '$props.BILL_FOR'
             };
         } else if (searchParams.searchType === 'accountTransactions') {
-            projectionFields = {
-                date: 1,
-                voucherNo: 1,
-                voucherType: 1,
-                category: 1,
-                status: 1,
-                description: 1,
-                account: {
-                    $first: {
-                        $filter: {
-                            input: '$details',
-                            as: 'detail',
-                            cond: { $eq: ['$$detail.accountId', searchParams.accountId] }
-                        }
-                    }
-                },
-                props: 1
-            };
-            return this.transactionModel.aggregate<TransactionDto>([
-                { $match: matchConditions },
-                { $project: projectionFields },
-                { $sort: { date: 1 } }
-            ]);
+            return this.transactionModel.find(matchConditions)
+                .populate('details.accountId', 'name')
+                .select({
+                    date: 1,
+                    voucherNo: 1,
+                    voucherType: 1,
+                    category: 1,
+                    status: 1,
+                    description: 1,
+                    details: 1,
+                    props: 1
+                })
+                .sort({ date: 1 })
+                .lean() as Promise<any[]>;
         }
         return this.transactionModel.aggregate<TransactionDto>([
             { $match: matchConditions },
